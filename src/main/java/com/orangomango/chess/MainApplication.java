@@ -6,10 +6,12 @@ import javafx.scene.Scene;
 import javafx.scene.layout.StackPane;
 import javafx.scene.canvas.*;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 import javafx.animation.*;
 import javafx.util.Duration;
 
 import java.io.*;
+import java.util.*;
 
 public class MainApplication extends Application{
 	private static final double WIDTH = 600;
@@ -19,6 +21,7 @@ public class MainApplication extends Application{
 	
 	private Board board;
 	private String currentSelection;
+	private List<String> currentMoves;
 	
 	@Override
 	public void start(Stage stage){
@@ -51,8 +54,10 @@ public class MainApplication extends Application{
 			if (this.currentSelection != null){
 				this.board.move(this.currentSelection, not);
 				this.currentSelection = null;
+				this.currentMoves = null;
 			} else if (this.board.getBoard()[x][y] != null){
 				this.currentSelection = not;
+				this.currentMoves = this.board.getValidMoves(this.board.getBoard()[x][y]);
 			}
 		});
 		
@@ -91,7 +96,7 @@ public class MainApplication extends Application{
 					if (piece.getType().getName() == Piece.PIECE_KING){
 						if ((piece.getColor() == Color.WHITE && this.board.getCheckingPieces(Color.WHITE).size() > 0) || (piece.getColor() == Color.BLACK && this.board.getCheckingPieces(Color.BLACK).size() > 0)){
 							gc.setFill(Color.BLUE);
-							gc.fillRect(i*75, j*75, 75, 75);
+							gc.fillOval(i*75, j*75, 75, 75);
 						}
 					}
 					gc.drawImage(piece.getImage(), i*75, j*75);
@@ -99,8 +104,17 @@ public class MainApplication extends Application{
 			}
 		}
 		
-		gc.setFill(Color.BLUE);
-		gc.fillText(String.format("FPS: %d", fps), 30, 30);
+		if (this.currentMoves != null){
+			gc.setFill(Color.YELLOW);
+			for (String move : this.currentMoves){
+				int[] pos = Board.convertPosition(move);
+				gc.fillOval(pos[0]*75+25, pos[1]*75+25, 25, 25);
+			}
+		}
+		
+		gc.setFill(Color.RED);
+		gc.setFont(new Font("Sans-serif", 15));
+		gc.fillText(String.format("FPS: %d\n%s", fps, this.board.getBoardInfo()), 30, 230);
 	}
 	
 	public static void main(String[] args) throws IOException{
