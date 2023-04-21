@@ -55,7 +55,6 @@ public class Board{
 		this.board[4][7] = this.whiteKing;
 	}
 	
-	// TODO king can't go into check
 	public void move(String pos1, String pos){
 		int[] p1 = convertPosition(pos1);
 		
@@ -63,13 +62,21 @@ public class Board{
 		if (piece == null) return;
 		
 		List<String> legalMoves = getLegalMoves(piece);
-		System.out.println(legalMoves);
 		if (legalMoves.contains(pos)){
 			int[] p2 = convertPosition(pos);
+			
+			Piece[][] backup = createBackup();
+			
 			Piece capture = this.board[p2[0]][p2[1]];
-			if (capture != null && capture.getType().getName() != Piece.PIECE_KING) capture(piece);
 			this.board[p1[0]][p1[1]] = null;
 			setPiece(piece, p2[0], p2[1]);
+			
+			if (canBeCaptured(piece.getColor() == Color.WHITE ? this.whiteKing : this.blackKing) != null){
+				restoreBackup(backup);
+				return;
+			}
+			
+			if (capture != null) capture(capture);
 			
 			List<String> newLegalMoves = getLegalMoves(piece);
 			if (piece.getColor() == Color.WHITE && newLegalMoves.contains(convertNotation(this.blackKing.getX(), this.blackKing.getY()))){
@@ -83,16 +90,32 @@ public class Board{
 			
 			if (piece.getType().getName() == Piece.PIECE_KING){
 				if (piece.getColor() == Color.WHITE){
-					whiteRightCastleAllowed = false;
-					whiteLeftCastleAllowed = false;
+					this.whiteRightCastleAllowed = false;
+					this.whiteLeftCastleAllowed = false;
 				} else {
-					blackRightCastleAllowed = false;
-					blackLeftCastleAllowed = false;
+					this.blackRightCastleAllowed = false;
+					this.blackLeftCastleAllowed = false;
+				}
+			}
+			
+			if (piece.getType().getName() == Piece.PIECE_ROOK){
+				if (piece.getColor() == Color.WHITE){
+					if (this.whiteRightCastleAllowed && piece.getX() == 7){
+						this.whiteRightCastleAllowed = false;
+					} else if (this.whiteLeftCastleAllowed && piece.getX() == 0){
+						this.whiteLeftCastleAllowed = false;
+					}
+				} else {
+					if (this.blackRightCastleAllowed && piece.getX() == 7){
+						this.blackRightCastleAllowed = false;
+					} else if (this.blackLeftCastleAllowed && piece.getX() == 0){
+						this.blackLeftCastleAllowed = false;
+					}
 				}
 			}
 		}
 	}
-	
+
 	private List<String> getLegalMoves(Piece piece){
 		List<String> result = new ArrayList<>();
 		int extraMove = 0;
@@ -160,7 +183,7 @@ public class Board{
 		List<Piece> result = new ArrayList<>();
 		String pos = convertNotation(piece.getX(), piece.getY());
 		for (Piece boardPiece : pieces){
-			if (getLegalMoves(boardPiece).contains(pos)){
+			if (boardPiece.getColor() != piece.getColor() && getLegalMoves(boardPiece).contains(pos)){
 				result.add(boardPiece);
 			}
 		}
@@ -168,13 +191,7 @@ public class Board{
 	}
 	
 	private boolean canKingMove(Piece king){
-		// Create a backup
-		Piece[][] backup = new Piece[8][8];
-		for (int i = 0; i < 8; i++){
-			for (int j = 0; j < 8; j++){
-				backup[i][j] = this.board[i][j];
-			}
-		}
+		Piece[][] backup = createBackup();
 		
 		// Check if king has any legal moves
 		for (int x = king.getX()-1; x < king.getX()+2; x++){
@@ -214,7 +231,7 @@ public class Board{
 				List<String> legalMoves = getLegalMoves(checks.get(0));
 				List<Piece> pieces = getPiecesOnBoard();
 				for (Piece piece : pieces){
-					if (piece.getType().getName() == Piece.PIECE_KING || piece == checks.get(0)) continue;
+					if (piece.getColor() == checks.get(0).getColor()) continue;
 					Set<String> intersection = getLegalMoves(piece).stream().distinct().filter(legalMoves::contains).collect(Collectors.toSet());
 					if (intersection.size() > 0){
 						return true;
@@ -224,6 +241,16 @@ public class Board{
 		}
 		
 		return false;
+	}
+	
+	private Piece[][] createBackup(){
+		Piece[][] backup = new Piece[8][8];
+		for (int i = 0; i < 8; i++){
+			for (int j = 0; j < 8; j++){
+				backup[i][j] = this.board[i][j];
+			}
+		}
+		return backup;
 	}
 	
 	private void restoreBackup(Piece[][] backup){
