@@ -1,9 +1,18 @@
 package com.orangomango.chess;
 
+import javafx.scene.paint.Color;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Board{
 	private Piece[][] board;
+	private boolean blackRightCastleAllowed = true, whiteRightCastleAllowed = true;
+	private boolean blackLeftCastleAllowed = true, whiteLeftCastleAllowed = true;
+	private List<Piece> blackCaptured = new ArrayList<>();
+	private List<Piece> whiteCaptured = new ArrayList<>();
+	private List<Piece> whiteChecks = new ArrayList<>();
+	private List<Piece> blackChecks = new ArrayList<>();
+	private Piece whiteKing, blackKing;
 	
 	public Board(){
 		this.board = new Piece[8][8];
@@ -13,61 +22,89 @@ public class Board{
 	public void setupBoard(){
 		// Pawns
 		for (int i = 0; i < 8; i++){
-			this.board[i][1] = new Piece(Piece.Pieces.PAWN, Piece.COLOR_BLACK, i, 1);
-			this.board[i][6] = new Piece(Piece.Pieces.PAWN, Piece.COLOR_WHITE, i, 6);
+			this.board[i][1] = new Piece(Piece.Pieces.PAWN, Color.BLACK, i, 1);
+			this.board[i][6] = new Piece(Piece.Pieces.PAWN, Color.WHITE, i, 6);
 		}
 		
 		// Rooks
-		this.board[0][0] = new Piece(Piece.Pieces.ROOK, Piece.COLOR_BLACK, 0, 0);
-		this.board[7][0] = new Piece(Piece.Pieces.ROOK, Piece.COLOR_BLACK, 7, 0);
-		this.board[0][7] = new Piece(Piece.Pieces.ROOK, Piece.COLOR_WHITE, 0, 7);
-		this.board[7][7] = new Piece(Piece.Pieces.ROOK, Piece.COLOR_WHITE, 7, 7);
+		this.board[0][0] = new Piece(Piece.Pieces.ROOK, Color.BLACK, 0, 0);
+		this.board[7][0] = new Piece(Piece.Pieces.ROOK, Color.BLACK, 7, 0);
+		this.board[0][7] = new Piece(Piece.Pieces.ROOK, Color.WHITE, 0, 7);
+		this.board[7][7] = new Piece(Piece.Pieces.ROOK, Color.WHITE, 7, 7);
 		
 		// Knights
-		this.board[1][0] = new Piece(Piece.Pieces.KNIGHT, Piece.COLOR_BLACK, 1, 0);
-		this.board[6][0] = new Piece(Piece.Pieces.KNIGHT, Piece.COLOR_BLACK, 6, 0);
-		this.board[1][7] = new Piece(Piece.Pieces.KNIGHT, Piece.COLOR_WHITE, 1, 7);
-		this.board[6][7] = new Piece(Piece.Pieces.KNIGHT, Piece.COLOR_WHITE, 6, 7);
+		this.board[1][0] = new Piece(Piece.Pieces.KNIGHT, Color.BLACK, 1, 0);
+		this.board[6][0] = new Piece(Piece.Pieces.KNIGHT, Color.BLACK, 6, 0);
+		this.board[1][7] = new Piece(Piece.Pieces.KNIGHT, Color.WHITE, 1, 7);
+		this.board[6][7] = new Piece(Piece.Pieces.KNIGHT, Color.WHITE, 6, 7);
 		
 		// Bishops
-		this.board[2][0] = new Piece(Piece.Pieces.BISHOP, Piece.COLOR_BLACK, 2, 0);
-		this.board[5][0] = new Piece(Piece.Pieces.BISHOP, Piece.COLOR_BLACK, 5, 0);
-		this.board[2][7] = new Piece(Piece.Pieces.BISHOP, Piece.COLOR_WHITE, 2, 7);
-		this.board[5][7] = new Piece(Piece.Pieces.BISHOP, Piece.COLOR_WHITE, 5, 7);
+		this.board[2][0] = new Piece(Piece.Pieces.BISHOP, Color.BLACK, 2, 0);
+		this.board[5][0] = new Piece(Piece.Pieces.BISHOP, Color.BLACK, 5, 0);
+		this.board[2][7] = new Piece(Piece.Pieces.BISHOP, Color.WHITE, 2, 7);
+		this.board[5][7] = new Piece(Piece.Pieces.BISHOP, Color.WHITE, 5, 7);
 		
 		// Queens
-		this.board[3][0] = new Piece(Piece.Pieces.QUEEN, Piece.COLOR_BLACK, 3, 0);
-		this.board[3][7] = new Piece(Piece.Pieces.QUEEN, Piece.COLOR_WHITE, 3, 7);
+		this.board[3][0] = new Piece(Piece.Pieces.QUEEN, Color.BLACK, 3, 0);
+		this.board[3][7] = new Piece(Piece.Pieces.QUEEN, Color.WHITE, 3, 7);
 		
 		// Kings
-		this.board[4][0] = new Piece(Piece.Pieces.KING, Piece.COLOR_BLACK, 4, 0);
-		this.board[4][7] = new Piece(Piece.Pieces.KING, Piece.COLOR_WHITE, 4, 7);
+		this.blackKing = new Piece(Piece.Pieces.KING, Color.BLACK, 4, 0);
+		this.whiteKing = new Piece(Piece.Pieces.KING, Color.WHITE, 4, 7);
+		this.board[4][0] = this.blackKing;
+		this.board[4][7] = this.whiteKing;
 	}
 	
+	// TODO king can't go into check
 	public void move(String pos1, String pos){
 		int[] p1 = convertPosition(pos1);
-		int[] p2 = convertPosition(pos);
 		
 		Piece piece = this.board[p1[0]][p1[1]];
-		int extraMove = 0;
-		if (piece.getType().getName().equals(Piece.PIECE_PAWN)){
-			if ((piece.getColor() == Piece.COLOR_WHITE && p2[1] > piece.getY()) || (piece.getColor() == Piece.COLOR_BLACK && p2[1] < piece.getY())){
-				return;
-			} else if ((piece.getColor() == Piece.COLOR_WHITE ? piece.getY()-1 : piece.getY()+1) == p2[1] && Math.abs(piece.getX()-p2[0]) == 1){
-				Piece capture = this.board[p2[0]][p2[1]];
-				if (capture == null){
-					return;
-				} else {
-					this.board[p1[0]][p1[1]] = null;
-					this.board[p2[0]][p2[1]] = piece;
-					piece.setPos(p2[0], p2[1]);
-				}
-			} else if (piece.getX() != p2[0]){
-				return;
+		if (piece == null) return;
+		
+		List<String> legalMoves = getLegalMoves(piece);
+		System.out.println(legalMoves);
+		if (legalMoves.contains(pos)){
+			int[] p2 = convertPosition(pos);
+			Piece capture = this.board[p2[0]][p2[1]];
+			if (capture != null && capture.getType().getName() != Piece.PIECE_KING) capture(piece);
+			this.board[p1[0]][p1[1]] = null;
+			setPiece(piece, p2[0], p2[1]);
+			
+			List<String> newLegalMoves = getLegalMoves(piece);
+			if (piece.getColor() == Color.WHITE && newLegalMoves.contains(convertNotation(this.blackKing.getX(), this.blackKing.getY()))){
+				this.blackChecks.add(piece);
+			} else if (piece.getColor() == Color.BLACK && newLegalMoves.contains(convertNotation(this.whiteKing.getX(), this.whiteKing.getY()))){
+				this.whiteChecks.add(piece);
+			} else {
+				this.blackChecks.remove(piece);
+				this.whiteChecks.remove(piece);
 			}
-			if ((piece.getColor() == Piece.COLOR_WHITE && piece.getY() == 6) || (piece.getColor() == Piece.COLOR_BLACK && piece.getY() == 1)){
+			
+			if (piece.getType().getName() == Piece.PIECE_KING){
+				if (piece.getColor() == Color.WHITE){
+					whiteRightCastleAllowed = false;
+					whiteLeftCastleAllowed = false;
+				} else {
+					blackRightCastleAllowed = false;
+					blackLeftCastleAllowed = false;
+				}
+			}
+		}
+	}
+	
+	private List<String> getLegalMoves(Piece piece){
+		List<String> result = new ArrayList<>();
+		int extraMove = 0;
+		if (piece.getType().getName() == Piece.PIECE_PAWN){
+			if ((piece.getColor() == Color.WHITE && piece.getY() == 6) || (piece.getColor() == Color.BLACK && piece.getY() == 1)){
 				extraMove = 1;
 			}
+			int factor = piece.getColor() == Color.WHITE ? -1 : 1;
+			String not1 = convertNotation(piece.getX()-1, piece.getY()+factor);
+			String not2 = convertNotation(piece.getX()+1, piece.getY()+factor);
+			if (not1 != null) result.add(not1);
+			if (not2 != null) result.add(not2);
 		}
 		int[] dir = piece.getType().getDirections();
 		for (int i = 0; i < dir.length; i++){			
@@ -80,32 +117,141 @@ public class Board{
 				comb = new int[][]{{-2, -1}, {-1, -2}, {2, -1}, {1, -2}, {1, 2}, {2, 1}, {-1, 2}, {-2, 1}};
 			}
 			if (comb != null){
-				for (int c = 0; c < 4; c++){
-					Piece lastPiece = null;
+				for (int c = 0; c < comb.length; c++){
 					for (int j = 1; j <= piece.getType().getAmount()+extraMove; j++){
 						int x = piece.getX()+comb[c][0]*j;
 						int y = piece.getY()+comb[c][1]*j;
-						String res = convertNotation(x, y);
-						if (res != null){
-							if (this.board[x][y] != null){
-								lastPiece = this.board[x][y];
+						if (piece.getType().getName() == Piece.PIECE_PAWN){
+							if (x != piece.getX() || (piece.getColor() == Color.WHITE && y > piece.getY()) || (piece.getColor() == Color.BLACK && y < piece.getY())){
+								continue;
 							}
-							if (res.equals(pos)){
-								if (lastPiece == null){
-									this.board[p1[0]][p1[1]] = null;
-									this.board[x][y] = piece;
-									piece.setPos(x, y);
-								} else if (lastPiece.getColor() != piece.getColor()){
-									this.board[p1[0]][p1[1]] = null;
-									this.board[lastPiece.getX()][lastPiece.getY()] = piece;
-									piece.setPos(lastPiece.getX(), lastPiece.getY());
-								}
-							}
+						}
+						Piece captured = getPieceAt(x, y);
+						String not = convertNotation(x, y);
+						if (not != null && (captured == null || captured.getColor() != piece.getColor())) result.add(not);
+						if (captured != null){
+							break;
 						}
 					}
 				}
 			}
 		}
+		return result;
+	}
+	
+	private Piece getPieceAt(int x, int y){
+		if (x >= 0 && y >= 0 && x < 8 && y < 8){
+			return this.board[x][y];
+		} else {
+			return null;
+		}
+	}
+	
+	private void capture(Piece piece){
+		if (piece.getColor() == Color.WHITE){
+			this.blackCaptured.add(piece);
+		} else {
+			this.whiteCaptured.add(piece);
+		}
+	}
+	
+	private List<Piece> canBeCaptured(Piece piece){
+		List<Piece> pieces = getPiecesOnBoard();
+		List<Piece> result = new ArrayList<>();
+		String pos = convertNotation(piece.getX(), piece.getY());
+		for (Piece boardPiece : pieces){
+			if (getLegalMoves(boardPiece).contains(pos)){
+				result.add(boardPiece);
+			}
+		}
+		return result.size() == 0 ? null : result;
+	}
+	
+	private boolean canKingMove(Piece king){
+		// Create a backup
+		Piece[][] backup = new Piece[8][8];
+		for (int i = 0; i < 8; i++){
+			for (int j = 0; j < 8; j++){
+				backup[i][j] = this.board[i][j];
+			}
+		}
+		
+		// Check if king has any legal moves
+		for (int x = king.getX()-1; x < king.getX()+2; x++){
+			for (int y = king.getY()-1; y < king.getY()+2; y++){
+				if (x >= 0 && y >= 0 && x < 8 && y < 8){
+					Piece piece = this.board[x][y];
+					if (piece.getColor() != king.getColor()){
+						this.board[king.getX()][king.getY()] = null;
+						setPiece(king, x, y);
+						if (canBeCaptured(king) == null){
+							restoreBackup(backup);
+							return true;
+						} else {
+							restoreBackup(backup);
+						}
+					}
+				}
+			}
+		}
+		
+		// If there is a single check, check if the piece can be captured or the ckeck can be blocked
+		List<Piece> checks = king.getColor() == Color.WHITE ? this.whiteChecks : this.blackChecks;
+		if (checks.size() == 1){
+			List<Piece> canCapture = canBeCaptured(checks.get(0));
+			if (canCapture != null){
+				for (Piece piece : canCapture){
+					this.board[piece.getX()][piece.getY()] = null;
+					setPiece(piece, checks.get(0).getX(), checks.get(0).getY());
+					if (canBeCaptured(king) != null){
+						restoreBackup(backup);
+					} else {
+						restoreBackup(backup);
+						return true;
+					}
+				}
+			} else {
+				List<String> legalMoves = getLegalMoves(checks.get(0));
+				List<Piece> pieces = getPiecesOnBoard();
+				for (Piece piece : pieces){
+					if (piece.getType().getName() == Piece.PIECE_KING || piece == checks.get(0)) continue;
+					Set<String> intersection = getLegalMoves(piece).stream().distinct().filter(legalMoves::contains).collect(Collectors.toSet());
+					if (intersection.size() > 0){
+						return true;
+					}
+				}
+			}
+		}
+		
+		return false;
+	}
+	
+	private void restoreBackup(Piece[][] backup){
+		for (int i = 0; i < 8; i++){
+			for (int j = 0; j < 8; j++){
+				Piece piece = backup[i][j];
+				if (piece == null){
+					this.board[i][j] = null;
+				} else {
+					setPiece(piece, i, j);
+				}
+			}
+		}
+	}
+	
+	private List<Piece> getPiecesOnBoard(){
+		List<Piece> pieces = new ArrayList<>();
+		for (int i = 0; i < 8; i++){
+			for (int j = 0; j < 8; j++){
+				if (this.board[i][j] != null) pieces.add(this.board[i][j]);
+			}
+		}
+		return pieces;
+	}
+	
+	private void setPiece(Piece piece, int x, int y){
+		this.board[x][y] = piece;
+		piece.setPos(x, y);
 	}
 	
 	private int[] convertPosition(String pos){
@@ -128,7 +274,7 @@ public class Board{
 	
 	private String convertNotation(int x, int y){
 		char[] c = new char[]{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
-		if (x < 0 || y < 0 || x >= 8 || y >= 8){
+		if (x < 0 || y < 0 || x > 7 || y > 7){
 			return null;
 		} else {
 			return c[x]+Integer.toString(8-y);
@@ -144,6 +290,18 @@ public class Board{
 			}
 			builder.append("\n");
 		}
+		int whiteSum = 0;
+		int blackSum = 0;
+		for (Piece p : this.whiteCaptured){
+			whiteSum += p.getType().getValue();
+		}
+		for (Piece p : this.blackCaptured){
+			blackSum += p.getType().getValue();
+		}
+		builder.append(String.format("B:%d W:%d - BK:%s WK:%s - BCK:%s WCK:%s\nChecks: %s %s\n",
+			blackSum, whiteSum, canBeCaptured(this.blackKing) != null, canBeCaptured(this.whiteKing) != null,
+			canBeCaptured(this.blackKing) != null && !canKingMove(this.blackKing), canBeCaptured(this.whiteKing) != null && !canKingMove(this.whiteKing),
+			this.blackChecks, this.whiteChecks));
 		return builder.toString();
 	}
 }
