@@ -84,8 +84,8 @@ public class Board{
 			} else if (piece.getColor() == Color.BLACK && newLegalMoves.contains(convertNotation(this.whiteKing.getX(), this.whiteKing.getY()))){
 				this.whiteChecks.add(piece);
 			} else {
-				this.blackChecks.remove(piece);
-				this.whiteChecks.remove(piece);
+				this.blackChecks.clear();
+				this.whiteChecks.clear();
 			}
 			
 			if (piece.getType().getName() == Piece.PIECE_KING){
@@ -126,8 +126,8 @@ public class Board{
 			int factor = piece.getColor() == Color.WHITE ? -1 : 1;
 			String not1 = convertNotation(piece.getX()-1, piece.getY()+factor);
 			String not2 = convertNotation(piece.getX()+1, piece.getY()+factor);
-			if (not1 != null) result.add(not1);
-			if (not2 != null) result.add(not2);
+			if (not1 != null && this.board[piece.getX()-1][piece.getY()+factor] != null) result.add(not1);
+			if (not2 != null && this.board[piece.getX()+1][piece.getY()+factor] != null) result.add(not2);
 		}
 		int[] dir = piece.getType().getDirections();
 		for (int i = 0; i < dir.length; i++){			
@@ -281,7 +281,7 @@ public class Board{
 		piece.setPos(x, y);
 	}
 	
-	private int[] convertPosition(String pos){
+	public static int[] convertPosition(String pos){
 		char[] c = new char[]{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
 		char[] data = pos.toCharArray();
 		int x = -1;
@@ -299,13 +299,25 @@ public class Board{
 		}
 	}
 	
-	private String convertNotation(int x, int y){
+	public static String convertNotation(int x, int y){
 		char[] c = new char[]{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
 		if (x < 0 || y < 0 || x > 7 || y > 7){
 			return null;
 		} else {
 			return c[x]+Integer.toString(8-y);
 		}
+	}
+	
+	public List<Piece> getCheckingPieces(Color color){
+		if (color == Color.WHITE){
+			return this.whiteChecks;
+		} else {
+			return this.blackChecks;
+		}
+	}
+	
+	public Piece[][] getBoard(){
+		return this.board;
 	}
 	
 	@Override

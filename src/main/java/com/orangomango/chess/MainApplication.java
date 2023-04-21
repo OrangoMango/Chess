@@ -17,12 +17,15 @@ public class MainApplication extends Application{
 	private volatile int frames, fps;
 	private static final int FPS = 40;
 	
+	private Board board;
+	private String currentSelection;
+	
 	@Override
 	public void start(Stage stage){
 		Thread counter = new Thread(() -> {
 			while (true){
 				try {
-					this.fps = Math.min(this.frames, FPS);
+					this.fps = this.frames;
 					this.frames = 0;
 					Thread.sleep(1000);
 				} catch (InterruptedException ex){
@@ -39,6 +42,20 @@ public class MainApplication extends Application{
 		GraphicsContext gc = canvas.getGraphicsContext2D();
 		pane.getChildren().add(canvas);
 		
+		this.board = new Board();
+		
+		canvas.setOnMousePressed(e -> {
+			int x = (int)e.getX()/75;
+			int y = (int)e.getY()/75;
+			String not = Board.convertNotation(x, y);
+			if (this.currentSelection != null){
+				this.board.move(this.currentSelection, not);
+				this.currentSelection = null;
+			} else if (this.board.getBoard()[x][y] != null){
+				this.currentSelection = not;
+			}
+		});
+		
 		Timeline loop = new Timeline(new KeyFrame(Duration.millis(1000.0/FPS), e -> update(gc)));
 		loop.setCycleCount(Animation.INDEFINITE);
 		loop.play();
@@ -51,23 +68,45 @@ public class MainApplication extends Application{
 		};
 		timer.start();
 		
+		stage.setResizable(false);
 		stage.setScene(new Scene(pane, WIDTH, HEIGHT));
 		stage.show();
 	}
 	
 	private void update(GraphicsContext gc){
 		gc.clearRect(0, 0, WIDTH, HEIGHT);
-		gc.setFill(Color.BLACK);
-		gc.fillRect(0, 0, WIDTH, HEIGHT);
+		Piece[][] pieces = this.board.getBoard();
+		for (int i = 0; i < 8; i++){
+			for (int j = 0; j < 8; j++){
+				gc.setFill((i+7*j) % 2 == 0 ? Color.WHITE : Color.GREEN);
+				if (this.currentSelection != null){
+					int[] pos = Board.convertPosition(this.currentSelection);
+					if (i == pos[0] && j == pos[1]){
+						gc.setFill(Color.RED);
+					}
+				}
+				gc.fillRect(i*75, j*75, 75, 75);
+				Piece piece = pieces[i][j];
+				if (piece != null){
+					if (piece.getType().getName() == Piece.PIECE_KING){
+						if ((piece.getColor() == Color.WHITE && this.board.getCheckingPieces(Color.WHITE).size() > 0) || (piece.getColor() == Color.BLACK && this.board.getCheckingPieces(Color.BLACK).size() > 0)){
+							gc.setFill(Color.BLUE);
+							gc.fillRect(i*75, j*75, 75, 75);
+						}
+					}
+					gc.drawImage(piece.getImage(), i*75, j*75);
+				}
+			}
+		}
 		
-		gc.setFill(Color.WHITE);
+		gc.setFill(Color.BLUE);
 		gc.fillText(String.format("FPS: %d", fps), 30, 30);
 	}
 	
 	public static void main(String[] args) throws IOException{
-		//launch(args);
+		launch(args);
 		
-		Board board = new Board();
+		/*Board board = new Board();
 		System.out.println(board);
 		
 		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
@@ -82,6 +121,6 @@ public class MainApplication extends Application{
 			}
 		} while (!line.equals(""));
 		reader.close();
-		System.exit(0);
+		System.exit(0);*/
 	}
 }

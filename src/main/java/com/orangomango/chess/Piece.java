@@ -1,6 +1,7 @@
 package com.orangomango.chess;
 
 import javafx.scene.paint.Color;
+import javafx.scene.image.Image;
 
 public class Piece{
 	public static final int MOVE_DIAGONAL = 0;
@@ -54,12 +55,14 @@ public class Piece{
 	private Pieces type;
 	private Color color;
 	private int x, y;
+	private Image image;
 	
 	public Piece(Pieces type, Color color, int x, int y){
 		this.type = type;
 		this.color = color;
 		this.x = x;
 		this.y = y;
+		this.image = new Image("/"+type.name().toLowerCase()+"_"+(color == Color.WHITE ? "white" : "black")+".png", 75, 75, true, true);
 	}
 	
 	public void setPos(int x, int y){
@@ -77,6 +80,10 @@ public class Piece{
 	
 	public Pieces getType(){
 		return this.type;
+	}
+	
+	public Image getImage(){
+		return this.image;
 	}
 	
 	public Color getColor(){
