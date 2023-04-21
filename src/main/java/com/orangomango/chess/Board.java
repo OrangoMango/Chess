@@ -13,6 +13,7 @@ public class Board{
 	private List<Piece> whiteChecks = new ArrayList<>();
 	private List<Piece> blackChecks = new ArrayList<>();
 	private Piece whiteKing, blackKing;
+	private Color player = Color.WHITE;
 	
 	public Board(){
 		this.board = new Piece[8][8];
@@ -114,6 +115,8 @@ public class Board{
 					}
 				}
 			}
+			
+			this.player = this.player == Color.WHITE ? Color.BLACK : Color.WHITE;
 		}
 	}
 	
@@ -137,6 +140,7 @@ public class Board{
 
 	private List<String> getLegalMoves(Piece piece){
 		List<String> result = new ArrayList<>();
+		if (piece.getColor() != this.player) return result;
 		int extraMove = 0;
 		if (piece.getType().getName() == Piece.PIECE_PAWN){
 			if ((piece.getColor() == Color.WHITE && piece.getY() == 6) || (piece.getColor() == Color.BLACK && piece.getY() == 1)){

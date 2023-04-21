@@ -105,9 +105,9 @@ public class MainApplication extends Application{
 		}
 		
 		if (this.currentMoves != null){
-			gc.setFill(Color.YELLOW);
 			for (String move : this.currentMoves){
 				int[] pos = Board.convertPosition(move);
+				gc.setFill(this.board.getBoard()[pos[0]][pos[1]] == null ? Color.YELLOW : Color.BLUE);
 				gc.fillOval(pos[0]*75+25, pos[1]*75+25, 25, 25);
 			}
 		}
