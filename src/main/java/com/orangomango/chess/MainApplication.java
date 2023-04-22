@@ -15,7 +15,7 @@ import java.util.*;
 
 public class MainApplication extends Application{
 	private static final double WIDTH = 600;
-	private static final double HEIGHT = 600;
+	private static final double HEIGHT = 800;
 	private volatile int frames, fps;
 	private static final int FPS = 40;
 	
@@ -55,18 +55,20 @@ public class MainApplication extends Application{
 		canvas.setOnMousePressed(e -> {
 			if (this.gameFinished) return;
 			int x = (int)(e.getX()/75);
-			int y = (int)(e.getY()/75);
+			int y = (int)((e.getY()-100)/75);
 			String not = Board.convertPosition(x, y);
-			if (this.currentSelection != null){
-				if (this.board.move(this.currentSelection, not)){
-					String output = engine.getBestMove(board.getFEN(), 100);
-					this.board.move(output.split(" ")[0], output.split(" ")[1]);
+			if (not != null){
+				if (this.currentSelection != null){
+					if (this.board.move(this.currentSelection, not)){
+						String output = engine.getBestMove(board.getFEN(), 100);
+						this.board.move(output.split(" ")[0], output.split(" ")[1]);
+					}
+					this.currentSelection = null;
+					this.currentMoves = null;
+				} else if (this.board.getBoard()[x][y] != null){
+					this.currentSelection = not;
+					this.currentMoves = this.board.getValidMoves(this.board.getBoard()[x][y]);
 				}
-				this.currentSelection = null;
-				this.currentMoves = null;
-			} else if (this.board.getBoard()[x][y] != null){
-				this.currentSelection = not;
-				this.currentMoves = this.board.getValidMoves(this.board.getBoard()[x][y]);
 			}
 		});
 		
@@ -90,6 +92,10 @@ public class MainApplication extends Application{
 	private void update(GraphicsContext gc){
 		this.gameFinished = this.board.isCheckMate(Color.WHITE) || this.board.isCheckMate(Color.BLACK) || this.board.isDraw();
 		gc.clearRect(0, 0, WIDTH, HEIGHT);
+		gc.setFill(Color.CYAN);
+		gc.fillRect(0, 0, WIDTH, HEIGHT);
+		gc.save();
+		gc.translate(0, 100);
 		Piece[][] pieces = this.board.getBoard();
 		for (int i = 0; i < 8; i++){
 			for (int j = 0; j < 8; j++){
@@ -133,8 +139,11 @@ public class MainApplication extends Application{
 			gc.fillRect(0, 0, WIDTH, HEIGHT);
 			gc.restore();
 		}
+		gc.restore();
 		
-		//System.out.println(this.board.getFEN());
+		gc.setFill(Color.BLACK);
+		gc.fillText(Integer.toString(this.board.getMaterial(Color.BLACK)), 30, 50);
+		gc.fillText(Integer.toString(this.board.getMaterial(Color.WHITE)), 30, 750);
 	}
 	
 	public static void main(String[] args) throws IOException{

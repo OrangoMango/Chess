@@ -556,12 +556,20 @@ public class Board{
 	}
 	
 	public String getBoardInfo(){
-		int whiteSum = this.whiteCaptured.stream().mapToInt(p -> p.getType().getValue()).sum();
-		int blackSum = this.blackCaptured.stream().mapToInt(p -> p.getType().getValue()).sum();
+		int whiteSum = getMaterial(Color.WHITE);
+		int blackSum = getMaterial(Color.BLACK);
 		return String.format("B:%d W:%d - BK:%s WK:%s - BCK:%s WCK:%s\nChecks: %s %s\n",
 			blackSum, whiteSum, canBeCaptured(this.blackKing) != null, canBeCaptured(this.whiteKing) != null,
 			isCheckMate(Color.BLACK), isCheckMate(Color.WHITE),
 			this.blackChecks, this.whiteChecks);
+	}
+	
+	public int getMaterial(Color color){
+		if (color == Color.WHITE){
+			return this.whiteCaptured.stream().mapToInt(p -> p.getType().getValue()).sum();
+		} else {
+			return this.blackCaptured.stream().mapToInt(p -> p.getType().getValue()).sum();
+		}
 	}
 	
 	@Override
