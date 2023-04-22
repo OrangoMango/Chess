@@ -23,6 +23,7 @@ public class MainApplication extends Application{
 	private Engine engine;
 	private String currentSelection;
 	private List<String> currentMoves;
+	private boolean gameFinished = false;
 	
 	@Override
 	public void start(Stage stage){
@@ -45,18 +46,20 @@ public class MainApplication extends Application{
 		Canvas canvas = new Canvas(WIDTH, HEIGHT);
 		GraphicsContext gc = canvas.getGraphicsContext2D();
 		pane.getChildren().add(canvas);
-		
-		this.board = new Board();
+		// rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+		// 5Rk1/p3r1pp/4N1b1/1p1pP3/3p4/7P/PP4P1/6K1 b - - 2 29
+		this.board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 		this.engine = new Engine();
+		stage.setOnCloseRequest(e -> engine.writeCommand("quit"));
 		
 		canvas.setOnMousePressed(e -> {
-			int x = (int)e.getX()/75;
-			int y = (int)e.getY()/75;
+			if (this.gameFinished) return;
+			int x = (int)(e.getX()/75);
+			int y = (int)(e.getY()/75);
 			String not = Board.convertPosition(x, y);
 			if (this.currentSelection != null){
 				if (this.board.move(this.currentSelection, not)){
 					String output = engine.getBestMove(board.getFEN(), 100);
-					//System.out.println(output);
 					this.board.move(output.split(" ")[0], output.split(" ")[1]);
 				}
 				this.currentSelection = null;
@@ -85,6 +88,7 @@ public class MainApplication extends Application{
 	}
 	
 	private void update(GraphicsContext gc){
+		this.gameFinished = this.board.isCheckMate(Color.WHITE) || this.board.isCheckMate(Color.BLACK) || this.board.isDraw();
 		gc.clearRect(0, 0, WIDTH, HEIGHT);
 		Piece[][] pieces = this.board.getBoard();
 		for (int i = 0; i < 8; i++){
@@ -121,6 +125,14 @@ public class MainApplication extends Application{
 		gc.setFill(Color.RED);
 		gc.setFont(new Font("Sans-serif", 15));
 		gc.fillText(String.format("FPS: %d\n%s", fps, this.board.getBoardInfo()), 30, 230);
+		
+		if (this.gameFinished){
+			gc.save();
+			gc.setFill(Color.BLACK);
+			gc.setGlobalAlpha(0.6);
+			gc.fillRect(0, 0, WIDTH, HEIGHT);
+			gc.restore();
+		}
 		
 		//System.out.println(this.board.getFEN());
 	}

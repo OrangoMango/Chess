@@ -18,49 +18,70 @@ public class Board{
 	private String enPassant = null;
 	private boolean[] canCastle = new boolean[4];
 	
-	public Board(){
+	public Board(String fen){
 		this.board = new Piece[8][8];
 		canCastle[0] = true;
 		canCastle[1] = true;
 		canCastle[2] = true;
 		canCastle[3] = true;
-		setupBoard();
+		setupBoard(fen);
 	}
 	
-	public void setupBoard(){
-		// Pawns
-		for (int i = 0; i < 8; i++){
-			this.board[i][1] = new Piece(Piece.Pieces.PAWN, Color.BLACK, i, 1);
-			this.board[i][6] = new Piece(Piece.Pieces.PAWN, Color.WHITE, i, 6);
+	public void setupBoard(String fen){
+		String[] data = fen.split(" ");
+		int r = 0;
+		for (String row : data[0].split("/")){
+			char[] p = row.toCharArray();
+			int pos = 0;
+			for (int i = 0; i < 8; i++){
+				try {
+					int n = Integer.parseInt(Character.toString(p[pos]));
+					i += n-1;
+				} catch (NumberFormatException ex){
+					Piece piece = new Piece(Piece.getType(String.valueOf(p[pos])), Character.isUpperCase(p[pos]) ? Color.WHITE : Color.BLACK, i, r);
+					this.board[i][r] = piece;
+					if (piece.getType().getName() == Piece.PIECE_KING){
+						if (piece.getColor() == Color.WHITE){
+							this.whiteKing = piece;
+						} else {
+							this.blackKing = piece;
+						}
+					}
+				}
+				pos++;
+			}
+			r++;
 		}
 		
-		// Rooks
-		this.board[0][0] = new Piece(Piece.Pieces.ROOK, Color.BLACK, 0, 0);
-		this.board[7][0] = new Piece(Piece.Pieces.ROOK, Color.BLACK, 7, 0);
-		this.board[0][7] = new Piece(Piece.Pieces.ROOK, Color.WHITE, 0, 7);
-		this.board[7][7] = new Piece(Piece.Pieces.ROOK, Color.WHITE, 7, 7);
+		this.player = data[1].equals("w") ? Color.WHITE : Color.BLACK;
+		char[] c = data[2].toCharArray();
+		for (int i = 0; i < c.length; i++){
+			if (i == 0 && String.valueOf(c[i]).equals("-")){
+				this.whiteLeftCastleAllowed = false;
+				this.whiteRightCastleAllowed = false;
+				if (c.length == 1){
+					this.blackLeftCastleAllowed = false;
+					this.blackRightCastleAllowed = false;
+				}
+			} else if (String.valueOf(c[i]).equals("-")){
+				this.blackLeftCastleAllowed = false;
+				this.blackRightCastleAllowed = false;
+			} else {
+				String d = String.valueOf(c[i]);
+				if (d.equals("Q")) this.whiteLeftCastleAllowed = true;
+				if (d.equals("K")) this.whiteRightCastleAllowed = true;
+				if (d.equals("q")) this.blackLeftCastleAllowed = true;
+				if (d.equals("k")) this.blackRightCastleAllowed = true;
+			}
+		}
 		
-		// Knights
-		this.board[1][0] = new Piece(Piece.Pieces.KNIGHT, Color.BLACK, 1, 0);
-		this.board[6][0] = new Piece(Piece.Pieces.KNIGHT, Color.BLACK, 6, 0);
-		this.board[1][7] = new Piece(Piece.Pieces.KNIGHT, Color.WHITE, 1, 7);
-		this.board[6][7] = new Piece(Piece.Pieces.KNIGHT, Color.WHITE, 6, 7);
+		this.canCastle = new boolean[]{this.whiteLeftCastleAllowed, this.whiteRightCastleAllowed, this.blackLeftCastleAllowed, this.blackRightCastleAllowed};
 		
-		// Bishops
-		this.board[2][0] = new Piece(Piece.Pieces.BISHOP, Color.BLACK, 2, 0);
-		this.board[5][0] = new Piece(Piece.Pieces.BISHOP, Color.BLACK, 5, 0);
-		this.board[2][7] = new Piece(Piece.Pieces.BISHOP, Color.WHITE, 2, 7);
-		this.board[5][7] = new Piece(Piece.Pieces.BISHOP, Color.WHITE, 5, 7);
+		String ep = String.valueOf(data[3]);
+		if (!ep.equals("-")) this.enPassant = ep;
 		
-		// Queens
-		this.board[3][0] = new Piece(Piece.Pieces.QUEEN, Color.BLACK, 3, 0);
-		this.board[3][7] = new Piece(Piece.Pieces.QUEEN, Color.WHITE, 3, 7);
-		
-		// Kings
-		this.blackKing = new Piece(Piece.Pieces.KING, Color.BLACK, 4, 0);
-		this.whiteKing = new Piece(Piece.Pieces.KING, Color.WHITE, 4, 7);
-		this.board[4][0] = this.blackKing;
-		this.board[4][7] = this.whiteKing;
+		this.fifty = Integer.parseInt(String.valueOf(data[4]));
+		this.moves = Integer.parseInt(String.valueOf(data[5]));
 	}
 	
 	public boolean move(String pos1, String pos){
@@ -156,6 +177,7 @@ public class Board{
 
 			if (this.player == Color.BLACK) this.moves++;
 			this.player = this.player == Color.WHITE ? Color.BLACK : Color.WHITE;
+			
 			return true;
 		}
 		return false;
@@ -505,18 +527,40 @@ public class Board{
 		return builder.toString();
 	}
 	
+	public boolean isCheckMate(Color color){
+		Piece king = color == Color.WHITE ? this.whiteKing : this.blackKing;
+		return canBeCaptured(king) != null && !canKingMove(king);
+	}
+	
+	public boolean isDraw(){
+		if (this.fifty >= 50) return true;
+		List<Piece> pieces = getPiecesOnBoard();
+		int whitePieces = pieces.stream().filter(piece -> piece.getColor() == Color.WHITE).mapToInt(p -> p.getType().getValue()).sum();
+		int blackPieces = pieces.stream().filter(piece -> piece.getColor() == Color.BLACK).mapToInt(p -> p.getType().getValue()).sum();
+		List<String> whiteLegalMoves = new ArrayList<>();
+		List<String> blackLegalMoves = new ArrayList<>();
+		for (Piece piece : pieces){
+			if (piece.getColor() == Color.WHITE){
+				whiteLegalMoves.addAll(getValidMoves(piece));
+			} else {
+				blackLegalMoves.addAll(getValidMoves(piece));
+			}
+		}
+		boolean whiteDraw = whitePieces == 0 || whitePieces == 3;
+		boolean blackDraw = blackPieces == 0 || blackPieces == 3;
+		if (whiteDraw && blackDraw) return true;
+		if ((canBeCaptured(this.blackKing) == null && !canKingMove(this.blackKing) && blackLegalMoves.size() == 0 && this.player == Color.BLACK) || (canBeCaptured(this.whiteKing) == null && !canKingMove(this.whiteKing)) && whiteLegalMoves.size() == 0 && this.player == Color.WHITE){
+			return true;
+		}
+		return false;
+	}
+	
 	public String getBoardInfo(){
-		int whiteSum = 0;
-		int blackSum = 0;
-		for (Piece p : this.whiteCaptured){
-			whiteSum += p.getType().getValue();
-		}
-		for (Piece p : this.blackCaptured){
-			blackSum += p.getType().getValue();
-		}
+		int whiteSum = this.whiteCaptured.stream().mapToInt(p -> p.getType().getValue()).sum();
+		int blackSum = this.blackCaptured.stream().mapToInt(p -> p.getType().getValue()).sum();
 		return String.format("B:%d W:%d - BK:%s WK:%s - BCK:%s WCK:%s\nChecks: %s %s\n",
 			blackSum, whiteSum, canBeCaptured(this.blackKing) != null, canBeCaptured(this.whiteKing) != null,
-			canBeCaptured(this.blackKing) != null && !canKingMove(this.blackKing), canBeCaptured(this.whiteKing) != null && !canKingMove(this.whiteKing),
+			isCheckMate(Color.BLACK), isCheckMate(Color.WHITE),
 			this.blackChecks, this.whiteChecks);
 	}
 	

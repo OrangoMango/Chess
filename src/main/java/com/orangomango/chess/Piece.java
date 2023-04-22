@@ -20,7 +20,7 @@ public class Piece{
 		ROOK(PIECE_ROOK, 8, 5, MOVE_HORIZONTAL),
 		KNIGHT(PIECE_KNIGHT, 1, 3, MOVE_KNIGHT),
 		BISHOP(PIECE_BISHOP, 8, 3, MOVE_DIAGONAL),
-		KING(PIECE_KING, 1, -1, MOVE_HORIZONTAL, MOVE_DIAGONAL),
+		KING(PIECE_KING, 1, 0, MOVE_HORIZONTAL, MOVE_DIAGONAL),
 		QUEEN(PIECE_QUEEN, 8, 9, MOVE_HORIZONTAL, MOVE_DIAGONAL);
 		
 		private String name;
@@ -88,6 +88,25 @@ public class Piece{
 	
 	public Color getColor(){
 		return this.color;
+	}
+	
+	public static Pieces getType(String t){
+		switch (t.toLowerCase()){
+			case "p":
+				return Pieces.PAWN;
+			case "r":
+				return Pieces.ROOK;
+			case "n":
+				return Pieces.KNIGHT;
+			case "b":
+				return Pieces.BISHOP;
+			case "q":
+				return Pieces.QUEEN;
+			case "k":
+				return Pieces.KING;
+			default:
+				return null;
+		}
 	}
 	
 	@Override
