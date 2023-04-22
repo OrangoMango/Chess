@@ -14,9 +14,16 @@ public class Board{
 	private List<Piece> blackChecks = new ArrayList<>();
 	private Piece whiteKing, blackKing;
 	private Color player = Color.WHITE;
+	private int fifty = 0, moves = 1;
+	private String enPassant = null;
+	private boolean[] canCastle = new boolean[4];
 	
 	public Board(){
 		this.board = new Piece[8][8];
+		canCastle[0] = true;
+		canCastle[1] = true;
+		canCastle[2] = true;
+		canCastle[3] = true;
 		setupBoard();
 	}
 	
@@ -56,39 +63,32 @@ public class Board{
 		this.board[4][7] = this.whiteKing;
 	}
 	
-	public void move(String pos1, String pos){
-		int[] p1 = convertPosition(pos1);
+	public boolean move(String pos1, String pos){
+		int[] p1 = convertNotation(pos1);
 		
 		Piece piece = this.board[p1[0]][p1[1]];
-		if (piece == null || piece.getColor() != this.player) return;
+		if (piece == null || piece.getColor() != this.player) return false;
 		
 		List<String> legalMoves = getLegalMoves(piece);
 		if (legalMoves.contains(pos)){
-			int[] p2 = convertPosition(pos);
+			int[] p2 = convertNotation(pos);
 			
 			Piece[][] backup = createBackup();
 			
 			Piece capture = this.board[p2[0]][p2[1]];
+			if (this.enPassant != null && pos.equals(this.enPassant)){
+				capture = this.board[p2[0]][p1[1]];
+				this.board[capture.getX()][capture.getY()] = null;
+			}
 			this.board[p1[0]][p1[1]] = null;
 			setPiece(piece, p2[0], p2[1]);
 			
 			if (canBeCaptured(piece.getColor() == Color.WHITE ? this.whiteKing : this.blackKing) != null){
 				restoreBackup(backup);
-				return;
+				return false;
 			}
 			
 			if (capture != null) capture(capture);
-			
-			this.blackChecks.clear();
-			this.whiteChecks.clear();
-			for (Piece boardPiece : getPiecesOnBoard()){
-				List<String> newLegalMoves = getLegalMoves(boardPiece);
-				if (boardPiece.getColor() == Color.WHITE && newLegalMoves.contains(convertNotation(this.blackKing.getX(), this.blackKing.getY()))){
-					this.blackChecks.add(boardPiece);
-				} else if (piece.getColor() == Color.BLACK && newLegalMoves.contains(convertNotation(this.whiteKing.getX(), this.whiteKing.getY()))){
-					this.whiteChecks.add(boardPiece);
-				}
-			}
 			
 			if (piece.getType().getName() == Piece.PIECE_KING){
 				if (Math.abs(p2[0]-p1[0]) == 2){
@@ -124,13 +124,41 @@ public class Board{
 			}
 			
 			if (piece.getType().getName() == Piece.PIECE_PAWN){
+				this.fifty = 0;
 				if ((piece.getColor() == Color.WHITE && piece.getY() == 0) || (piece.getColor() == Color.BLACK && piece.getY() == 7)){
 					this.board[piece.getX()][piece.getY()] = new Piece(Piece.Pieces.QUEEN, piece.getColor(), piece.getX(), piece.getY());
 				}
+				if (Math.abs(p2[1]-p1[1]) == 2){
+					this.enPassant = convertPosition(piece.getX(), piece.getColor() == Color.WHITE ? piece.getY()+1 : piece.getY()-1);
+				} else {
+					this.enPassant = null;
+				}
+			} else this.fifty++;
+			
+			if (piece.getColor() == Color.WHITE){
+				canCastle[0] = canCastleLeft(Color.WHITE);
+				canCastle[1] = canCastleRight(Color.WHITE);
+			} else {
+				canCastle[2] = canCastleLeft(Color.BLACK);
+				canCastle[3] = canCastleRight(Color.BLACK);
 			}
 			
+			this.blackChecks.clear();
+			this.whiteChecks.clear();
+			for (Piece boardPiece : getPiecesOnBoard()){
+				List<String> newLegalMoves = getLegalMoves(boardPiece);
+				if (boardPiece.getColor() == Color.WHITE && newLegalMoves.contains(convertPosition(this.blackKing.getX(), this.blackKing.getY()))){
+					this.blackChecks.add(boardPiece);
+				} else if (piece.getColor() == Color.BLACK && newLegalMoves.contains(convertPosition(this.whiteKing.getX(), this.whiteKing.getY()))){
+					this.whiteChecks.add(boardPiece);
+				}
+			}
+
+			if (this.player == Color.BLACK) this.moves++;
 			this.player = this.player == Color.WHITE ? Color.BLACK : Color.WHITE;
+			return true;
 		}
+		return false;
 	}
 	
 	public void castleRight(Color color){
@@ -190,7 +218,7 @@ public class Board{
 		if (piece.getColor() != this.player) return validMoves;
 		Piece[][] backup = createBackup();
 		for (String move : legalMoves){
-			int[] pos = convertPosition(move);
+			int[] pos = convertNotation(move);
 			this.board[piece.getX()][piece.getY()] = null;
 			setPiece(piece, pos[0], pos[1]);
 			if (canBeCaptured(piece.getColor() == Color.WHITE ? this.whiteKing : this.blackKing) == null){
@@ -211,16 +239,21 @@ public class Board{
 				extraMove = 1;
 			}
 			int factor = piece.getColor() == Color.WHITE ? -1 : 1;
-			String not1 = convertNotation(piece.getX()-1, piece.getY()+factor);
-			String not2 = convertNotation(piece.getX()+1, piece.getY()+factor);
+			String not1 = convertPosition(piece.getX()-1, piece.getY()+factor);
+			String not2 = convertPosition(piece.getX()+1, piece.getY()+factor);
 			if (not1 != null && this.board[piece.getX()-1][piece.getY()+factor] != null && this.board[piece.getX()-1][piece.getY()+factor].getColor() != piece.getColor()) result.add(not1);
 			if (not2 != null && this.board[piece.getX()+1][piece.getY()+factor] != null && this.board[piece.getX()+1][piece.getY()+factor].getColor() != piece.getColor()) result.add(not2);
+			
+			// En passant
+			if (this.enPassant != null && piece.getY() == convertNotation(this.enPassant)[1]+(piece.getColor() == Color.WHITE ? 1 : -1)){
+				result.add(this.enPassant);
+			}
 		}
 		if (piece.getType().getName() == Piece.PIECE_KING){
-			if (canCastleLeft(piece.getColor())){
-				result.add(convertNotation(piece.getX()-2, piece.getY()));
-			} else if (canCastleRight(piece.getColor())){
-				result.add(convertNotation(piece.getX()+2, piece.getY()));
+			if ((piece.getColor() == Color.WHITE && this.canCastle[0]) || (piece.getColor() == Color.BLACK && this.canCastle[2])){
+				result.add(convertPosition(piece.getX()-2, piece.getY()));
+			} else if ((piece.getColor() == Color.WHITE && this.canCastle[1]) || (piece.getColor() == Color.BLACK && this.canCastle[3])){
+				result.add(convertPosition(piece.getX()+2, piece.getY()));
 			}
 		}
 		int[] dir = piece.getType().getDirections();
@@ -244,7 +277,7 @@ public class Board{
 							}
 						}
 						Piece captured = getPieceAt(x, y);
-						String not = convertNotation(x, y);
+						String not = convertPosition(x, y);
 						if (not != null && (captured == null || captured.getColor() != piece.getColor())){
 							if (captured == null || piece.getType().getName() != Piece.PIECE_PAWN || captured.getX() != piece.getX()){
 								result.add(not);
@@ -274,12 +307,13 @@ public class Board{
 		} else {
 			this.whiteCaptured.add(piece);
 		}
+		this.fifty = 0;
 	}
 	
 	private List<Piece> canBeCaptured(Piece piece){
 		List<Piece> pieces = getPiecesOnBoard();
 		List<Piece> result = new ArrayList<>();
-		String pos = convertNotation(piece.getX(), piece.getY());
+		String pos = convertPosition(piece.getX(), piece.getY());
 		for (Piece boardPiece : pieces){
 			if (boardPiece.getColor() != piece.getColor() && getLegalMoves(boardPiece).contains(pos)){
 				result.add(boardPiece);
@@ -333,7 +367,7 @@ public class Board{
 					Set<String> intersection = getLegalMoves(piece).stream().distinct().filter(legalMoves::contains).collect(Collectors.toSet());
 					List<String> allowed = new ArrayList<>();
 					for (String move : intersection){
-						int[] pos = convertPosition(move);
+						int[] pos = convertNotation(move);
 						this.board[piece.getX()][piece.getY()] = null;
 						setPiece(piece, pos[0], pos[1]);
 						if (canBeCaptured(piece.getColor() == Color.WHITE ? this.whiteKing : this.blackKing) == null){
@@ -391,7 +425,7 @@ public class Board{
 		piece.setPos(x, y);
 	}
 	
-	public static int[] convertPosition(String pos){
+	public static int[] convertNotation(String pos){
 		char[] c = new char[]{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
 		char[] data = pos.toCharArray();
 		int x = -1;
@@ -409,7 +443,7 @@ public class Board{
 		}
 	}
 	
-	public static String convertNotation(int x, int y){
+	public static String convertPosition(int x, int y){
 		char[] c = new char[]{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
 		if (x < 0 || y < 0 || x > 7 || y > 7){
 			return null;
@@ -428,6 +462,47 @@ public class Board{
 	
 	public Piece[][] getBoard(){
 		return this.board;
+	}
+	
+	public String getFEN(){
+		StringBuilder builder = new StringBuilder();
+		for (int i = 0; i < 8; i++){
+			int empty = 0;
+			for (int j = 0; j < 8; j++){
+				Piece piece = this.board[j][i];
+				if (piece == null){
+					empty++;
+				} else {
+					if (empty > 0){
+						builder.append(empty);
+						empty = 0;
+					}
+					builder.append(piece.getColor() == Color.WHITE ? piece.getType().getName().toUpperCase() : piece.getType().getName().toLowerCase());
+				}
+			}
+			if (empty > 0) builder.append(empty);
+			if (i < 7) builder.append("/");
+		}
+		
+		builder.append(this.player == Color.WHITE ? " w " : " b ");
+		
+		if (!this.whiteLeftCastleAllowed && !this.whiteRightCastleAllowed){
+			builder.append("-");
+		} else {
+			if (this.whiteRightCastleAllowed) builder.append("K");
+			if (this.whiteLeftCastleAllowed) builder.append("Q");
+		}
+		if (!this.blackLeftCastleAllowed && !this.blackRightCastleAllowed){
+			builder.append("-");
+		} else {
+			if (this.blackRightCastleAllowed) builder.append("k");
+			if (this.blackLeftCastleAllowed) builder.append("q");
+		}
+		builder.append(" ");
+		
+		builder.append(String.format("%s %d %d", this.enPassant == null ? "-" : this.enPassant, this.fifty, this.moves));
+		
+		return builder.toString();
 	}
 	
 	public String getBoardInfo(){

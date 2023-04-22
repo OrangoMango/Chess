@@ -20,6 +20,7 @@ public class MainApplication extends Application{
 	private static final int FPS = 40;
 	
 	private Board board;
+	private Engine engine;
 	private String currentSelection;
 	private List<String> currentMoves;
 	
@@ -46,13 +47,18 @@ public class MainApplication extends Application{
 		pane.getChildren().add(canvas);
 		
 		this.board = new Board();
+		this.engine = new Engine();
 		
 		canvas.setOnMousePressed(e -> {
 			int x = (int)e.getX()/75;
 			int y = (int)e.getY()/75;
-			String not = Board.convertNotation(x, y);
+			String not = Board.convertPosition(x, y);
 			if (this.currentSelection != null){
-				this.board.move(this.currentSelection, not);
+				if (this.board.move(this.currentSelection, not)){
+					String output = engine.getBestMove(board.getFEN(), 100);
+					//System.out.println(output);
+					this.board.move(output.split(" ")[0], output.split(" ")[1]);
+				}
 				this.currentSelection = null;
 				this.currentMoves = null;
 			} else if (this.board.getBoard()[x][y] != null){
@@ -85,7 +91,7 @@ public class MainApplication extends Application{
 			for (int j = 0; j < 8; j++){
 				gc.setFill((i+7*j) % 2 == 0 ? Color.WHITE : Color.GREEN);
 				if (this.currentSelection != null){
-					int[] pos = Board.convertPosition(this.currentSelection);
+					int[] pos = Board.convertNotation(this.currentSelection);
 					if (i == pos[0] && j == pos[1]){
 						gc.setFill(Color.RED);
 					}
@@ -106,7 +112,7 @@ public class MainApplication extends Application{
 		
 		if (this.currentMoves != null){
 			for (String move : this.currentMoves){
-				int[] pos = Board.convertPosition(move);
+				int[] pos = Board.convertNotation(move);
 				gc.setFill(this.board.getBoard()[pos[0]][pos[1]] == null ? Color.YELLOW : Color.BLUE);
 				gc.fillOval(pos[0]*75+25, pos[1]*75+25, 25, 25);
 			}
@@ -115,6 +121,8 @@ public class MainApplication extends Application{
 		gc.setFill(Color.RED);
 		gc.setFont(new Font("Sans-serif", 15));
 		gc.fillText(String.format("FPS: %d\n%s", fps, this.board.getBoardInfo()), 30, 230);
+		
+		//System.out.println(this.board.getFEN());
 	}
 	
 	public static void main(String[] args) throws IOException{
@@ -134,7 +142,12 @@ public class MainApplication extends Application{
 				System.out.println(board);
 			}
 		} while (!line.equals(""));
-		reader.close();
-		System.exit(0);*/
+		reader.close();*/
+		
+		//Engine engine = new Engine();
+		//engine.writeCommand("d");
+		//System.out.println(engine.getBestMove(board.getFEN(), 100));
+		
+		//System.exit(0);
 	}
 }
