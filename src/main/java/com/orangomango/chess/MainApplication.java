@@ -67,7 +67,7 @@ public class MainApplication extends Application{
 							this.currentSelection = null;
 							this.currentMoves = null;
 							this.animation = null;
-							if (ok) makeEngineMove();
+							//if (ok) makeEngineMove();
 						});
 						Piece piece = this.board.getBoard()[Board.convertNotation(this.currentSelection)[0]][Board.convertNotation(this.currentSelection)[1]];
 						if (this.board.getValidMoves(piece).contains(not)){

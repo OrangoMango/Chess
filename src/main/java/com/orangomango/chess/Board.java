@@ -98,6 +98,12 @@ public class Board{
 			int[] p2 = convertNotation(pos);
 			
 			Piece[][] backup = createBackup();
+			List<Piece> identical = new ArrayList<>();
+			for (Piece p : getPiecesOnBoard()){
+				if (p != piece && p.getType() == piece.getType() && p.getColor() == piece.getColor() && (p.getType().getName() != Piece.PIECE_BISHOP || p.getX()+8*p.getY() % 2 == piece.getX()+8*piece.getY() % 2)){
+					if (getValidMoves(p).contains(pos)) identical.add(p);
+				}
+			}
 			
 			Piece capture = this.board[p2[0]][p2[1]];
 			if (this.enPassant != null && pos.equals(this.enPassant)){
@@ -147,12 +153,14 @@ public class Board{
 				}
 			}
 			
+			String prom = null;
 			if (piece.getType().getName() == Piece.PIECE_PAWN){
 				this.fifty = 0;
 				if ((piece.getColor() == Color.WHITE && piece.getY() == 0) || (piece.getColor() == Color.BLACK && piece.getY() == 7)){
 					this.board[piece.getX()][piece.getY()] = new Piece(Piece.Pieces.QUEEN, piece.getColor(), piece.getX(), piece.getY());
 					capture(piece);
 					promote(piece, Piece.Pieces.QUEEN);
+					prom = "Q";
 				}
 				if (Math.abs(p2[1]-p1[1]) == 2){
 					this.enPassant = convertPosition(piece.getX(), piece.getColor() == Color.WHITE ? piece.getY()+1 : piece.getY()-1);
@@ -186,9 +194,45 @@ public class Board{
 			String fen = getFEN().split(" ")[0];
 			this.states.put(fen, this.states.getOrDefault(fen, 0)+1);
 			
+			System.out.println(moveToString(piece, pos1, pos, this.blackChecks.contains(piece) || this.whiteChecks.contains(piece), capture != null, prom, identical));
+			
 			return true;
 		}
 		return false;
+	}
+	
+	public String moveToString(Piece piece, String start, String pos, boolean check, boolean capture, String prom, List<Piece> identical){
+		String output = "";
+		if (piece.getType().getName() == Piece.PIECE_PAWN){
+			if (capture){
+				output = String.valueOf(start.charAt(0))+"x"+pos;
+			} else {
+				output = pos;
+			}
+		} else if (piece.getType().getName() == Piece.PIECE_KING && Math.abs(convertNotation(start)[0]-piece.getX()) == 2){
+			output = piece.getX() == 2 ? "O-O-O" : "O-O";
+		} else if (prom != null){
+			output = pos+"="+prom;
+		} else {
+			String extra = "";
+			if (identical.size() >= 2){
+				extra = start;
+			} else if (identical.size() == 1){
+				Piece other = identical.get(0);
+				if (piece.getX() != other.getX()){
+					extra = String.valueOf(start.charAt(0));
+				} else if (piece.getY() != other.getY()){
+					extra = String.valueOf(start.charAt(1));
+				}
+			}
+			output = piece.getType().getName().toUpperCase()+extra+(capture ? "x" : "")+pos;
+		}
+		if (isCheckMate(piece.getColor() == Color.WHITE ? Color.BLACK : Color.WHITE)){
+			output += "#";
+		} else if (check){
+			output += "+";
+		}
+		return output;
 	}
 	
 	public void castleRight(Color color){
