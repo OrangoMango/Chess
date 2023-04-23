@@ -50,39 +50,44 @@ public class MainApplication extends Application{
 		Canvas canvas = new Canvas(WIDTH, HEIGHT);
 		GraphicsContext gc = canvas.getGraphicsContext2D();
 		pane.getChildren().add(canvas);
-		// rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
-		// 5Rk1/p3r1pp/4N1b1/1p1pP3/3p4/7P/PP4P1/6K1 b - - 2 29
+		// startpos: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
 		this.board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 		this.engine = new Engine();
 		
 		canvas.setOnMousePressed(e -> {
-			if (e.getButton() == MouseButton.SECONDARY) System.out.println(this.board.getFEN());
-			if (this.gameFinished) return;
-			int x = (int)(e.getX()/75);
-			int y = (int)((e.getY()-100)/75);
-			String not = Board.convertPosition(x, y);
-			if (not != null){
-				if (this.currentSelection != null){
-					this.animation = new PieceAnimation(this.currentSelection, not, () -> {
-						boolean ok = this.board.move(this.currentSelection, not);
-						this.currentSelection = null;
-						this.currentMoves = null;
-						this.animation = null;
-						//if (ok) makeEngineMove();
-					});
-					Piece piece = this.board.getBoard()[Board.convertNotation(this.currentSelection)[0]][Board.convertNotation(this.currentSelection)[1]];
-					if (this.board.getValidMoves(piece).contains(not)){
-						this.animation.start();
-					} else {
-						this.currentSelection = null;
-						this.currentMoves = null;
-						this.animation = null;
+			if (e.getButton() == MouseButton.PRIMARY){
+				if (this.gameFinished) return;
+				int x = (int)(e.getX()/75);
+				int y = (int)((e.getY()-100)/75);
+				String not = Board.convertPosition(x, y);
+				if (not != null){
+					if (this.currentSelection != null){
+						this.animation = new PieceAnimation(this.currentSelection, not, () -> {
+							boolean ok = this.board.move(this.currentSelection, not);
+							this.currentSelection = null;
+							this.currentMoves = null;
+							this.animation = null;
+							if (ok) makeEngineMove();
+						});
+						Piece piece = this.board.getBoard()[Board.convertNotation(this.currentSelection)[0]][Board.convertNotation(this.currentSelection)[1]];
+						if (this.board.getValidMoves(piece).contains(not)){
+							this.animation.start();
+						} else {
+							this.currentSelection = null;
+							this.currentMoves = null;
+							this.animation = null;
+						}
+					} else if (this.board.getBoard()[x][y] != null){
+						this.currentSelection = not;
+						this.currentMoves = this.board.getValidMoves(this.board.getBoard()[x][y]);
 					}
-				} else if (this.board.getBoard()[x][y] != null){
-					this.currentSelection = not;
-					this.currentMoves = this.board.getValidMoves(this.board.getBoard()[x][y]);
 				}
+			} else if (e.getButton() == MouseButton.SECONDARY){
+				System.out.println(this.board.getFEN());
+			} else if (e.getButton() == MouseButton.MIDDLE){
+				makeEngineMove();
 			}
+			
 		});
 		
 		Timeline loop = new Timeline(new KeyFrame(Duration.millis(1000.0/FPS), e -> update(gc)));
@@ -176,9 +181,9 @@ public class MainApplication extends Application{
 			}
 		}
 		
-		gc.setFill(Color.RED);
-		gc.setFont(new Font("Sans-serif", 15));
-		gc.fillText(String.format("FPS: %d\n%s", fps, this.board.getBoardInfo()), 30, 230);
+		//gc.setFill(Color.RED);
+		//gc.setFont(new Font("Sans-serif", 15));
+		//gc.fillText(String.format("FPS: %d\n%s", fps, this.board.getBoardInfo()), 30, 230);
 		
 		if (this.gameFinished){
 			gc.save();

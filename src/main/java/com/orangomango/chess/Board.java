@@ -213,12 +213,12 @@ public class Board{
 	
 	private boolean canCastleRight(Color color){
 		boolean moved = color == Color.WHITE ? this.whiteRightCastleAllowed : this.blackRightCastleAllowed;
-		return moved && canCastle(new int[]{5, 6}, new int[]{5, 6}, color);
+		return moved && canBeCaptured(color == Color.WHITE ? this.whiteKing : this.blackKing) == null && canCastle(new int[]{5, 6}, new int[]{5, 6}, color);
 	}
 	
 	private boolean canCastleLeft(Color color){
 		boolean moved = color == Color.WHITE ? this.whiteLeftCastleAllowed : this.blackLeftCastleAllowed;
-		return moved && canCastle(new int[]{2, 3}, new int[]{1, 2, 3}, color);
+		return moved && canBeCaptured(color == Color.WHITE ? this.whiteKing : this.blackKing) == null && canCastle(new int[]{2, 3}, new int[]{1, 2, 3}, color);
 	}
 	
 	private boolean canCastle(int[] xpos, int[] checkXpos, Color color){
@@ -572,8 +572,8 @@ public class Board{
 				blackLegalMoves.addAll(getValidMoves(piece));
 			}
 		}
-		boolean whiteDraw = whitePieces == 0 || whitePieces == 3;
-		boolean blackDraw = blackPieces == 0 || blackPieces == 3;
+		boolean whiteDraw = whitePieces == 0 || (whitePieces == 3 && pieces.stream().filter(piece -> piece.getColor() == Color.WHITE).count() == 2);
+		boolean blackDraw = blackPieces == 0 || (blackPieces == 3 && pieces.stream().filter(piece -> piece.getColor() == Color.BLACK).count() == 2);
 		if (whiteDraw && blackDraw) return true;
 		if ((canBeCaptured(this.blackKing) == null && !canKingMove(this.blackKing) && blackLegalMoves.size() == 0 && this.player == Color.BLACK) || (canBeCaptured(this.whiteKing) == null && !canKingMove(this.whiteKing)) && whiteLegalMoves.size() == 0 && this.player == Color.WHITE){
 			return true;
