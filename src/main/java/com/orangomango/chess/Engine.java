@@ -33,9 +33,9 @@ public class Engine{
 		try {
 			Thread.sleep(time);
 			writeCommand("isready");
-			String line;
-			while ((line = this.reader.readLine()) != null){
-				if (line.equals("readyok")){
+			while (true){
+				String line = this.reader.readLine();
+				if (line == null || line.equals("readyok")){
 					break;
 				} else {
 					builder.append(line+"\n");
@@ -43,15 +43,28 @@ public class Engine{
 			}
 		} catch (Exception ex){
 			ex.printStackTrace();
+			System.exit(0);
 		}
 		return builder.toString();
 	}
 	
 	public String getBestMove(String fen, int moveTime){
-		writeCommand("position fen "+fen);
-		writeCommand("go movetime "+moveTime);
-		String output = getOutput(moveTime+50).split("bestmove ")[1].split(" ")[0];
-		char[] c = output.toCharArray();
-		return String.valueOf(c[0])+String.valueOf(c[1])+" "+String.valueOf(c[2])+String.valueOf(c[3]);
+		synchronized (this){
+			writeCommand("position fen "+fen);
+			writeCommand("go movetime "+moveTime);
+			String output = getOutput(moveTime+150).split("bestmove ")[1].split(" ")[0];
+			if (output.trim().equals("(none)")) return null;
+			char[] c = output.toCharArray();
+			return String.valueOf(c[0])+String.valueOf(c[1])+" "+String.valueOf(c[2])+String.valueOf(c[3]);
+		}
+	}
+	
+	public String getEval(String fen){
+		synchronized (this){
+			writeCommand("position fen "+fen);
+			writeCommand("eval");
+			String output = getOutput(50).split("Final evaluation: ")[1].split("\\(")[0].trim();
+			return output;
+		}
 	}
 }

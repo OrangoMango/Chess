@@ -5,9 +5,11 @@ import javafx.stage.Stage;
 import javafx.scene.Scene;
 import javafx.scene.layout.StackPane;
 import javafx.scene.canvas.*;
+import javafx.scene.input.MouseButton;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.animation.*;
+import javafx.geometry.Point2D;
 import javafx.util.Duration;
 
 import java.io.*;
@@ -24,6 +26,8 @@ public class MainApplication extends Application{
 	private String currentSelection;
 	private List<String> currentMoves;
 	private boolean gameFinished = false;
+	private volatile String eval;
+	private volatile PieceAnimation animation;
 	
 	@Override
 	public void start(Stage stage){
@@ -50,21 +54,30 @@ public class MainApplication extends Application{
 		// 5Rk1/p3r1pp/4N1b1/1p1pP3/3p4/7P/PP4P1/6K1 b - - 2 29
 		this.board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 		this.engine = new Engine();
-		stage.setOnCloseRequest(e -> engine.writeCommand("quit"));
 		
 		canvas.setOnMousePressed(e -> {
+			if (e.getButton() == MouseButton.SECONDARY) System.out.println(this.board.getFEN());
 			if (this.gameFinished) return;
 			int x = (int)(e.getX()/75);
 			int y = (int)((e.getY()-100)/75);
 			String not = Board.convertPosition(x, y);
 			if (not != null){
 				if (this.currentSelection != null){
-					if (this.board.move(this.currentSelection, not)){
-						String output = engine.getBestMove(board.getFEN(), 100);
-						this.board.move(output.split(" ")[0], output.split(" ")[1]);
+					this.animation = new PieceAnimation(this.currentSelection, not, () -> {
+						boolean ok = this.board.move(this.currentSelection, not);
+						this.currentSelection = null;
+						this.currentMoves = null;
+						this.animation = null;
+						//if (ok) makeEngineMove();
+					});
+					Piece piece = this.board.getBoard()[Board.convertNotation(this.currentSelection)[0]][Board.convertNotation(this.currentSelection)[1]];
+					if (this.board.getValidMoves(piece).contains(not)){
+						this.animation.start();
+					} else {
+						this.currentSelection = null;
+						this.currentMoves = null;
+						this.animation = null;
 					}
-					this.currentSelection = null;
-					this.currentMoves = null;
 				} else if (this.board.getBoard()[x][y] != null){
 					this.currentSelection = not;
 					this.currentMoves = this.board.getValidMoves(this.board.getBoard()[x][y]);
@@ -84,9 +97,35 @@ public class MainApplication extends Application{
 		};
 		timer.start();
 		
+		Thread evalCalculator = new Thread(() -> {
+			try {
+				while (true){
+					this.eval = this.engine.getEval(this.board.getFEN());
+					Thread.sleep(100);
+				}
+			} catch (InterruptedException ex){
+				ex.printStackTrace();
+			}
+		});
+		evalCalculator.setDaemon(true);
+		evalCalculator.start();
+		
 		stage.setResizable(false);
 		stage.setScene(new Scene(pane, WIDTH, HEIGHT));
 		stage.show();
+	}
+	
+	private void makeEngineMove(){
+		new Thread(() -> {
+			String output = this.engine.getBestMove(board.getFEN(), 150);
+			if (output != null){
+				this.animation = new PieceAnimation(output.split(" ")[0], output.split(" ")[1], () -> {
+					this.board.move(output.split(" ")[0], output.split(" ")[1]);
+					this.animation = null;
+				});
+				this.animation.start();
+			}
+		}).start();
 	}
 	
 	private void update(GraphicsContext gc){
@@ -107,15 +146,24 @@ public class MainApplication extends Application{
 					}
 				}
 				gc.fillRect(i*75, j*75, 75, 75);
+			}
+		}
+		
+		for (int i = 0; i < 8; i++){
+			for (int j = 0; j < 8; j++){
 				Piece piece = pieces[i][j];
+				Point2D pos = new Point2D(i, j);
+				if (this.animation != null && this.animation.getStartNotation().equals(Board.convertPosition(i, j))){
+					pos = this.animation.getPosition();
+				}
 				if (piece != null){
 					if (piece.getType().getName() == Piece.PIECE_KING){
 						if ((piece.getColor() == Color.WHITE && this.board.getCheckingPieces(Color.WHITE).size() > 0) || (piece.getColor() == Color.BLACK && this.board.getCheckingPieces(Color.BLACK).size() > 0)){
 							gc.setFill(Color.BLUE);
-							gc.fillOval(i*75, j*75, 75, 75);
+							gc.fillOval(pos.getX()*75, pos.getY()*75, 75, 75);
 						}
 					}
-					gc.drawImage(piece.getImage(), i*75, j*75);
+					gc.drawImage(piece.getImage(), pos.getX()*75, pos.getY()*75);
 				}
 			}
 		}
@@ -142,8 +190,32 @@ public class MainApplication extends Application{
 		gc.restore();
 		
 		gc.setFill(Color.BLACK);
-		gc.fillText(Integer.toString(this.board.getMaterial(Color.BLACK)), 30, 50);
-		gc.fillText(Integer.toString(this.board.getMaterial(Color.WHITE)), 30, 750);
+		int bm = this.board.getMaterial(Color.BLACK);
+		int wm = this.board.getMaterial(Color.WHITE);
+		int diff = wm-bm;
+		if (diff < 0) gc.fillText(Integer.toString(-diff), 30, 50);
+		if (diff > 0) gc.fillText(Integer.toString(diff), 30, 750);
+		
+		List<Piece> black = this.board.getMaterialList(Color.BLACK);
+		List<Piece> white = this.board.getMaterialList(Color.WHITE);
+		gc.save();
+		for (int i = 0; i < black.size(); i++){
+			Piece piece = black.get(i);
+			Piece prev = i == 0 ? null : black.get(i-1);
+			gc.translate(prev != null && prev.getType().getValue() == piece.getType().getValue() ? 15 : 33, 0);
+			gc.drawImage(piece.getImage(), 30, 60, 30, 30);
+		}
+		gc.restore();
+		gc.save();
+		for (int i = 0; i < white.size(); i++){
+			Piece piece = white.get(i);
+			Piece prev = i == 0 ? null : white.get(i-1);
+			gc.translate(prev != null && prev.getType().getValue() == piece.getType().getValue() ? 15 : 33, 0);
+			gc.drawImage(piece.getImage(), 30, 750, 30, 30);
+		}
+		gc.restore();
+		
+		gc.fillText("Eval: "+this.eval, 500, 770);
 	}
 	
 	public static void main(String[] args) throws IOException{
