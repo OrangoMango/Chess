@@ -236,6 +236,10 @@ public class Board{
 					check = true;
 				}
 			}
+			
+			if (check){
+				MainApplication.playSound(MainApplication.CHECK_SOUND);
+			}
 
 			if (this.player == Color.BLACK) this.movesN++;
 			this.player = this.player == Color.WHITE ? Color.BLACK : Color.WHITE;
@@ -245,6 +249,11 @@ public class Board{
 			
 			this.moves.add(moveToString(piece, pos1, pos, check, capture != null, prom, identical));
 			
+			if (capture != null){
+				MainApplication.playSound(MainApplication.CAPTURE_SOUND);
+			} else {
+				MainApplication.playSound(MainApplication.MOVE_SOUND);
+			}
 			return true;
 		}
 		return false;
@@ -292,6 +301,7 @@ public class Board{
 		if (canCastleRight(color)){
 			this.board[rook.getX()][rook.getY()] = null;
 			setPiece(rook, king.getX()-1, king.getY());
+			MainApplication.playSound(MainApplication.CASTLE_SOUND);
 		}
 	}
 	
@@ -302,6 +312,7 @@ public class Board{
 		if (canCastleLeft(color)){
 			this.board[rook.getX()][rook.getY()] = null;
 			setPiece(rook, king.getX()+1, king.getY());
+			MainApplication.playSound(MainApplication.CASTLE_SOUND);
 		}
 	}
 	

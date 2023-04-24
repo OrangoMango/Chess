@@ -11,6 +11,7 @@ import javafx.scene.text.Font;
 import javafx.animation.*;
 import javafx.geometry.Point2D;
 import javafx.util.Duration;
+import javafx.scene.media.*;
 
 import java.io.*;
 import java.util.*;
@@ -30,6 +31,11 @@ public class MainApplication extends Application{
 	private boolean gameFinished = false;
 	private volatile String eval;
 	private volatile PieceAnimation animation;
+	
+	public static final Media MOVE_SOUND = new Media(MainApplication.class.getResource("/move.mp3").toExternalForm());
+	public static final Media CAPTURE_SOUND = new Media(MainApplication.class.getResource("/capture.mp3").toExternalForm());
+	public static final Media CASTLE_SOUND = new Media(MainApplication.class.getResource("/castle.mp3").toExternalForm());
+	public static final Media CHECK_SOUND = new Media(MainApplication.class.getResource("/notify.mp3").toExternalForm());
 	
 	@Override
 	public void start(Stage stage){
@@ -225,6 +231,11 @@ public class MainApplication extends Application{
 			gc.fillRect(0, 0, WIDTH, HEIGHT);
 			gc.restore();
 		}
+	}
+	
+	public static void playSound(Media media){
+		AudioClip player = new AudioClip(media.getSource());
+		player.play();
 	}
 	
 	public static void main(String[] args) throws IOException{
