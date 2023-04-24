@@ -25,6 +25,28 @@ public class ClientManager{
 		listen();
 	}
 	
+	public void reply(){
+		String message = null;
+		for (ClientManager c : Server.clients){
+			if (c != this && c.getColor() == this.color){
+				this.color = this.color == Color.WHITE ? Color.BLACK : Color.WHITE;
+			}
+		}
+		if (Server.clients.size() > 2){
+			message = "FULL";
+			Server.clients.remove(this);
+		} else {
+			message = this.color == Color.WHITE ? "WHITE" : "BLACK";
+		}
+		try {
+			this.writer.write(message);
+			this.writer.newLine();
+			this.writer.flush();
+		} catch (IOException ex){
+			close();
+		}
+	}
+	
 	public Color getColor(){
 		return this.color;
 	}

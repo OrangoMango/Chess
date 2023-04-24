@@ -27,18 +27,9 @@ public class Server{
 			while (!this.server.isClosed()){
 				try {
 					Socket socket = this.server.accept();
-					if (this.clients.size() >= 2){
-						System.out.println("Server is full");
-					} else {
-						ClientManager cm = new ClientManager(socket);
-						clients.add(cm);
-						for (ClientManager c : clients){
-							if (c != cm && c.getColor() == cm.getColor()){
-								clients.remove(cm);
-								System.out.println("Color already available");
-							}
-						}
-					}
+					ClientManager cm = new ClientManager(socket);
+					clients.add(cm);
+					cm.reply();
 				} catch (IOException ex){
 					ex.printStackTrace();
 				}

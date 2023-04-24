@@ -21,6 +21,7 @@ public class Board{
 	private boolean[] canCastle = new boolean[4];
 	private Map<String, Integer> states = new HashMap<>();
 	private List<String> moves = new ArrayList<>();
+	public String playerA = System.getProperty("user.name"), playerB = "BLACK";
 	
 	public Board(String fen){
 		this.board = new Piece[8][8];
@@ -625,12 +626,12 @@ public class Board{
 		StringBuilder builder = new StringBuilder();
 		SimpleDateFormat format = new SimpleDateFormat("YYYY/MM/dd");
 		Date date = new Date();
-		builder.append("[Event \""+System.getProperty("user.name")+" vs stockfish"+"\"]\n");
-		builder.append("[Site \"OrangoMangoChess\"]\n");
+		builder.append("[Event \""+String.format("%s vs %s", this.playerA, this.playerB)+"\"]\n");
+		builder.append("[Site \"com.orangomango.chess\"]\n");
 		builder.append("[Date \""+format.format(date)+"\"]\n");
 		builder.append("[Round \"1\"]\n");
-		builder.append("[White \""+System.getProperty("user.name")+"\"]\n");
-		builder.append("[Black \"stockfish\"]\n");
+		builder.append("[White \""+this.playerA+"\"]\n");
+		builder.append("[Black \""+this.playerB+"\"]\n");
 		String result = "*";
 		if (isDraw()){
 			result = "½-½";

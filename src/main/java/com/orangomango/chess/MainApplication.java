@@ -86,7 +86,7 @@ public class MainApplication extends Application{
 					y = 7-y;
 				}
 				String not = Board.convertPosition(x, y);
-				if (not != null){
+				if (not != null && e.getY() > SPACE){
 					if (this.gameFinished || (this.board.getPlayer() != this.viewPoint && !this.overTheBoard)) return;
 					if (this.currentSelection != null){
 						this.animation = new PieceAnimation(this.currentSelection, not, () -> {
@@ -147,6 +147,7 @@ public class MainApplication extends Application{
 						String ip = cip.getText().equals("") ? "192.168.1.247" : cip.getText();
 						int port = cport.getText().equals("") ? 1234 : Integer.parseInt(cport.getText());
 						this.client = new Client(ip, port, this.viewPoint);
+						this.viewPoint = this.client.getColor();
 						Thread listener = new Thread(() -> {
 							while (!this.gameFinished){
 								String message = client.getMessage();
@@ -166,18 +167,35 @@ public class MainApplication extends Application{
 						listener.start();
 						alert.close();
 					});
+					CheckBox otb = new CheckBox("Over the board");
 					CheckBox eng = new CheckBox("Play against stockfish");
+					otb.disableProperty().bindBidirectional(eng.selectedProperty());
 					eng.setDisable(!this.engine.isRunning());
 					eng.setSelected(this.engineMove);
 					eng.setOnAction(ev -> {
+						this.overTheBoard = true;
+						otb.setSelected(true);
 						this.engineMove = eng.isSelected();
 						if (this.engineMove && this.viewPoint == Color.BLACK){
 							makeEngineMove();
+							this.board.playerA = "stockfish";
+							this.board.playerB = System.getProperty("user.name");
+						} else {
+							this.board.playerA = System.getProperty("user.name");
+							this.board.playerB = "stockfish";
 						}
 					});
-					CheckBox otb = new CheckBox("Over the board");
 					otb.setSelected(this.overTheBoard);
-					otb.setOnAction(ev -> this.overTheBoard = otb.isSelected());
+					otb.setOnAction(ev -> {
+						this.overTheBoard = otb.isSelected();
+						if (this.viewPoint == Color.WHITE){
+							this.board.playerA = System.getProperty("user.name");
+							this.board.playerB = "BLACK";
+						} else {
+							this.board.playerA = "WHITE";
+							this.board.playerB = System.getProperty("user.name");
+						}
+					});
 					TextArea data = new TextArea(this.board.getFEN()+"\n\n"+this.board.getPGN());
 					data.setMaxWidth(WIDTH*0.7);
 					w.setToggleGroup(grp);
@@ -187,6 +205,7 @@ public class MainApplication extends Application{
 					Button reset = new Button("Reset board");
 					reset.setOnAction(ev -> {
 						this.board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+						this.gameFinished = false;
 						alert.close();
 					});
 					layout.add(new HBox(5, sip, sport, startServer), 0, 0);

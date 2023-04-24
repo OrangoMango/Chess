@@ -11,6 +11,7 @@ public class Client{
 	private Socket socket;
 	private BufferedWriter writer;
 	private BufferedReader reader;
+	private Color color;
 	
 	public Client(String ip, int port, Color color){
 		this.ip = ip;
@@ -20,9 +21,23 @@ public class Client{
 			this.writer = new BufferedWriter(new OutputStreamWriter(this.socket.getOutputStream()));
 			this.reader = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
 			sendMessage(color == Color.WHITE ? "WHITE" : "BLACK");
+			String response  = getMessage();
+			if (response != null){
+				if (response.equals("FULL")){
+					System.exit(0);
+				} else {
+					this.color = response.equals("WHITE") ? Color.WHITE : Color.BLACK;
+				}
+			} else {
+				System.exit(0);
+			}
 		} catch (IOException ex){
 			close();
 		}
+	}
+	
+	public Color getColor(){
+		return this.color;
 	}
 	
 	public void sendMessage(String message){
