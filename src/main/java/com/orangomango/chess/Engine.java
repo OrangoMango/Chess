@@ -7,6 +7,7 @@ public class Engine{
 	
 	private OutputStreamWriter writer;
 	private BufferedReader reader;
+	private boolean running = true;
 	
 	public Engine(){
 		try {
@@ -16,7 +17,12 @@ public class Engine{
 			getOutput(20);
 		} catch (IOException ex){
 			ex.printStackTrace();
+			this.running = false;
 		}
+	}
+	
+	public boolean isRunning(){
+		return this.running;
 	}
 	
 	public void writeCommand(String command){

@@ -9,10 +9,13 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.KeyCode;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
+import javafx.scene.layout.*;
 import javafx.animation.*;
 import javafx.geometry.Point2D;
+import javafx.geometry.Insets;
 import javafx.util.Duration;
 import javafx.scene.media.*;
+import javafx.scene.control.*;
 
 import java.io.*;
 import java.util.*;
@@ -36,7 +39,7 @@ public class MainApplication extends Application{
 	private volatile String eval;
 	private volatile PieceAnimation animation;
 	private Color viewPoint;
-	private boolean onTheBoard = false;
+	private boolean overTheBoard = false;
 	private boolean engineMove = false;
 	
 	private Client client;
@@ -76,7 +79,6 @@ public class MainApplication extends Application{
 		
 		canvas.setOnMousePressed(e -> {
 			if (e.getButton() == MouseButton.PRIMARY){
-				if (this.gameFinished || (this.board.getPlayer() != this.viewPoint && !this.onTheBoard)) return;
 				int x = (int)(e.getX()/SQUARE_SIZE);
 				int y = (int)((e.getY()-SPACE)/SQUARE_SIZE);
 				if (this.viewPoint == Color.BLACK){
@@ -85,6 +87,7 @@ public class MainApplication extends Application{
 				}
 				String not = Board.convertPosition(x, y);
 				if (not != null){
+					if (this.gameFinished || (this.board.getPlayer() != this.viewPoint && !this.overTheBoard)) return;
 					if (this.currentSelection != null){
 						this.animation = new PieceAnimation(this.currentSelection, not, () -> {
 							boolean ok = this.board.move(this.currentSelection, not);
@@ -107,47 +110,103 @@ public class MainApplication extends Application{
 						this.currentSelection = not;
 						this.currentMoves = this.board.getValidMoves(this.board.getBoard()[x][y]);
 					}
+				} else {
+					Alert alert = new Alert(Alert.AlertType.INFORMATION);
+					alert.setTitle("Settings");
+					alert.setHeaderText("Setup game");
+					GridPane layout = new GridPane();
+					layout.setPadding(new Insets(10, 10, 10, 10));
+					layout.setHgap(5);
+					layout.setVgap(5);
+					TextField sip = new TextField();
+					sip.setPromptText("192.168.1.247");
+					TextField sport = new TextField();
+					sport.setPromptText("1234");
+					TextField cip = new TextField();
+					cip.setPromptText("192.168.1.247");
+					TextField cport = new TextField();
+					cport.setPromptText("1234");
+					sip.setMaxWidth(120);
+					sport.setMaxWidth(80);
+					cip.setMaxWidth(120);
+					cport.setMaxWidth(80);
+					ToggleGroup grp = new ToggleGroup();
+					RadioButton w = new RadioButton("White");
+					w.setOnAction(ev -> this.viewPoint = Color.WHITE);
+					RadioButton b = new RadioButton("Black");
+					b.setOnAction(ev -> this.viewPoint = Color.BLACK);
+					Button startServer = new Button("Start server");
+					startServer.setOnAction(ev -> {
+						String ip = sip.getText().equals("") ? "192.168.1.247" : sip.getText();
+						int port = sport.getText().equals("") ? 1234 : Integer.parseInt(sport.getText());
+						Server server = new Server(ip, port);
+						alert.close();
+					});
+					Button connect = new Button("Connect");
+					connect.setOnAction(ev -> {
+						String ip = cip.getText().equals("") ? "192.168.1.247" : cip.getText();
+						int port = cport.getText().equals("") ? 1234 : Integer.parseInt(cport.getText());
+						this.client = new Client(ip, port, this.viewPoint);
+						Thread listener = new Thread(() -> {
+							while (!this.gameFinished){
+								String message = client.getMessage();
+								if (message == null){
+									System.exit(0);
+								} else {
+									this.animation = new PieceAnimation(message.split(" ")[0], message.split(" ")[1], () -> {
+										this.board.move(message.split(" ")[0], message.split(" ")[1]);
+										this.animation = null;
+										this.gameFinished = this.board.isCheckMate(Color.WHITE) || this.board.isCheckMate(Color.BLACK) || this.board.isDraw();
+									});
+									this.animation.start();
+								}
+							}
+						});
+						listener.setDaemon(true);
+						listener.start();
+						alert.close();
+					});
+					CheckBox eng = new CheckBox("Play against stockfish");
+					eng.setDisable(!this.engine.isRunning());
+					eng.setSelected(this.engineMove);
+					eng.setOnAction(ev -> {
+						this.engineMove = eng.isSelected();
+						if (this.engineMove && this.viewPoint == Color.BLACK){
+							makeEngineMove();
+						}
+					});
+					CheckBox otb = new CheckBox("Over the board");
+					otb.setSelected(this.overTheBoard);
+					otb.setOnAction(ev -> this.overTheBoard = otb.isSelected());
+					TextArea data = new TextArea(this.board.getFEN()+"\n\n"+this.board.getPGN());
+					data.setMaxWidth(WIDTH*0.7);
+					w.setToggleGroup(grp);
+					w.setSelected(this.viewPoint == Color.WHITE);
+					b.setSelected(this.viewPoint == Color.BLACK);
+					b.setToggleGroup(grp);
+					Button reset = new Button("Reset board");
+					reset.setOnAction(ev -> {
+						this.board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+						alert.close();
+					});
+					layout.add(new HBox(5, sip, sport, startServer), 0, 0);
+					layout.add(new HBox(5, cip, cport, connect), 0, 1);
+					layout.add(eng, 0, 2);
+					layout.add(otb, 0, 3);
+					layout.add(new HBox(5, w, b), 0, 4);
+					layout.add(reset, 0, 5);
+					layout.add(data, 0, 6);
+					alert.getDialogPane().setContent(layout);
+					alert.showAndWait();
 				}
 			} else if (e.getButton() == MouseButton.SECONDARY){
 				System.out.println(this.board.getFEN());
 				System.out.println(this.board.getPGN());
 			} else if (e.getButton() == MouseButton.MIDDLE){
-				if (this.gameFinished || (this.board.getPlayer() != this.viewPoint && !this.onTheBoard)) return;
+				if (this.gameFinished || (this.board.getPlayer() != this.viewPoint && !this.overTheBoard)) return;
 				makeEngineMove();
 			}
 			
-		});
-		
-		canvas.setFocusTraversable(true);
-		canvas.setOnKeyPressed(e -> {
-			if (e.getCode() == KeyCode.S){
-				Server server = new Server("192.168.1.247", 1234);
-			} else if (e.getCode() == KeyCode.C){
-				this.client = new Client("192.168.1.247", 1234, this.viewPoint);
-				Thread listener = new Thread(() -> {
-					while (!this.gameFinished){
-						String message = client.getMessage();
-						if (message == null){
-							System.exit(0);
-						} else {
-							this.animation = new PieceAnimation(message.split(" ")[0], message.split(" ")[1], () -> {
-								this.board.move(message.split(" ")[0], message.split(" ")[1]);
-								this.animation = null;
-								this.gameFinished = this.board.isCheckMate(Color.WHITE) || this.board.isCheckMate(Color.BLACK) || this.board.isDraw();
-							});
-							this.animation.start();
-						}
-					}
-				});
-				listener.setDaemon(true);
-				listener.start();
-			} else if (e.getCode() == KeyCode.R){
-				this.board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-			} else if (e.getCode() == KeyCode.A){
-				this.onTheBoard = !this.onTheBoard;
-			} else if (e.getCode() == KeyCode.Z){
-				this.engineMove = !this.engineMove;
-			}
 		});
 		
 		Timeline loop = new Timeline(new KeyFrame(Duration.millis(1000.0/FPS), e -> update(gc)));
@@ -164,7 +223,7 @@ public class MainApplication extends Application{
 		
 		Thread evalCalculator = new Thread(() -> {
 			try {
-				while (true){
+				while (this.engine.isRunning()){
 					this.eval = this.engine.getEval(this.board.getFEN());
 					Thread.sleep(100);
 				}
@@ -181,7 +240,7 @@ public class MainApplication extends Application{
 		
 		/*new Thread(() -> {
 			try {
-				Thread.sleep(1000);
+				Thread.sleep(5000);
 				while (!this.gameFinished){
 					makeEngineMove();
 					Thread.sleep(1000);
@@ -193,6 +252,7 @@ public class MainApplication extends Application{
 	}
 	
 	private void makeEngineMove(){
+		if (this.gameFinished) return;
 		new Thread(() -> {
 			String output = this.engine.getBestMove(board.getFEN(), 500);
 			if (output != null){
