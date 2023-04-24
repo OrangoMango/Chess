@@ -24,10 +24,6 @@ public class Board{
 	
 	public Board(String fen){
 		this.board = new Piece[8][8];
-		canCastle[0] = true;
-		canCastle[1] = true;
-		canCastle[2] = true;
-		canCastle[3] = true;
 		setupBoard(fen);
 	}
 	
@@ -79,7 +75,10 @@ public class Board{
 			}
 		}
 		
-		this.canCastle = new boolean[]{this.whiteLeftCastleAllowed, this.whiteRightCastleAllowed, this.blackLeftCastleAllowed, this.blackRightCastleAllowed};
+		this.canCastle[0] = canCastleLeft(Color.WHITE);
+		this.canCastle[1] = canCastleRight(Color.WHITE);
+		this.canCastle[2] = canCastleLeft(Color.BLACK);
+		this.canCastle[3] = canCastleRight(Color.BLACK);
 		
 		String ep = String.valueOf(data[3]);
 		if (!ep.equals("-")) this.enPassant = ep;
@@ -167,12 +166,15 @@ public class Board{
 			
 			if (capture != null) capture(capture);
 			
+			boolean castle = false;
 			if (piece.getType().getName() == Piece.PIECE_KING){
 				if (Math.abs(p2[0]-p1[0]) == 2){
 					if (p2[0] == 6){
 						castleRight(piece.getColor());
+						castle = true;
 					} else if (p2[0] == 2){
 						castleLeft(piece.getColor());
+						castle = true;
 					}
 				}
 				if (piece.getColor() == Color.WHITE){
@@ -218,10 +220,10 @@ public class Board{
 				this.enPassant = null;
 			}
 			
-			canCastle[0] = canCastleLeft(Color.WHITE);
-			canCastle[1] = canCastleRight(Color.WHITE);
-			canCastle[2] = canCastleLeft(Color.BLACK);
-			canCastle[3] = canCastleRight(Color.BLACK);
+			this.canCastle[0] = canCastleLeft(Color.WHITE);
+			this.canCastle[1] = canCastleRight(Color.WHITE);
+			this.canCastle[2] = canCastleLeft(Color.BLACK);
+			this.canCastle[3] = canCastleRight(Color.BLACK);
 			
 			this.blackChecks.clear();
 			this.whiteChecks.clear();
@@ -247,10 +249,12 @@ public class Board{
 			String fen = getFEN().split(" ")[0];
 			this.states.put(fen, this.states.getOrDefault(fen, 0)+1);
 			
-			this.moves.add(moveToString(piece, pos1, pos, check, capture != null, prom, identical));
+			this.moves.add(moveToString(piece, pos1, pos, check, capture != null, prom, castle, identical));
 			
 			if (capture != null){
 				MainApplication.playSound(MainApplication.CAPTURE_SOUND);
+			} else if (castle){
+				MainApplication.playSound(MainApplication.CASTLE_SOUND);
 			} else {
 				MainApplication.playSound(MainApplication.MOVE_SOUND);
 			}
@@ -259,7 +263,7 @@ public class Board{
 		return false;
 	}
 	
-	private String moveToString(Piece piece, String start, String pos, boolean check, boolean capture, String prom, List<Piece> identical){
+	private String moveToString(Piece piece, String start, String pos, boolean check, boolean capture, String prom, boolean castle, List<Piece> identical){
 		int[] coord = convertNotation(start);
 		String output = "";
 		if (piece.getType().getName() == Piece.PIECE_PAWN){
@@ -268,10 +272,9 @@ public class Board{
 			} else {
 				output = pos;
 			}
-		} else if (piece.getType().getName() == Piece.PIECE_KING && Math.abs(coord[0]-piece.getX()) == 2){
+			if (prom != null) output += "="+prom;
+		} else if (castle){
 			output = piece.getX() == 2 ? "O-O-O" : "O-O";
-		} else if (prom != null){
-			output = pos+"="+prom;
 		} else {
 			String extra = "";
 			if (identical.size() >= 2){
@@ -301,7 +304,6 @@ public class Board{
 		if (canCastleRight(color)){
 			this.board[rook.getX()][rook.getY()] = null;
 			setPiece(rook, king.getX()-1, king.getY());
-			MainApplication.playSound(MainApplication.CASTLE_SOUND);
 		}
 	}
 	
@@ -312,7 +314,6 @@ public class Board{
 		if (canCastleLeft(color)){
 			this.board[rook.getX()][rook.getY()] = null;
 			setPiece(rook, king.getX()+1, king.getY());
-			MainApplication.playSound(MainApplication.CASTLE_SOUND);
 		}
 	}
 	
@@ -640,7 +641,7 @@ public class Board{
 		}
 		builder.append("[Result \""+result+"\"]\n\n");
 		for (int i = 0; i < this.moves.size(); i++){
-			if (i % 2 == 0) builder.append((i/2+1)+".");
+			if (i % 2 == 0) builder.append((i/2+1)+". ");
 			builder.append(this.moves.get(i)+" ");
 		}
 		builder.append(result);
