@@ -147,7 +147,7 @@ public class Board{
 			Piece[][] backup = createBackup();
 			List<Piece> identical = new ArrayList<>();
 			for (Piece p : getPiecesOnBoard()){
-				if (p != piece && p.getType() == piece.getType() && p.getColor() == piece.getColor() && (p.getType().getName() != Piece.PIECE_BISHOP || p.getX()+8*p.getY() % 2 == piece.getX()+8*piece.getY() % 2)){
+				if (p != piece && p.getType() == piece.getType() && p.getColor() == piece.getColor()){
 					if (getValidMoves(p).contains(pos)) identical.add(p);
 				}
 			}

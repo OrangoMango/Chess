@@ -204,7 +204,12 @@ public class MainApplication extends Application{
 					b.setToggleGroup(grp);
 					Button reset = new Button("Reset board");
 					reset.setOnAction(ev -> {
-						this.board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+						String text = data.getText();
+						String fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+						if (text.startsWith("CUSTOM\n")){
+							fen = text.split("\n")[1];
+						}
+						this.board = new Board(fen);
 						this.gameFinished = false;
 						alert.close();
 					});
