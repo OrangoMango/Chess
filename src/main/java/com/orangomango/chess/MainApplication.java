@@ -16,8 +16,10 @@ import java.io.*;
 import java.util.*;
 
 public class MainApplication extends Application{
-	private static final double WIDTH = 600;
-	private static final double HEIGHT = 800;
+	public static final int SQUARE_SIZE = 55;
+	private static final int SPACE = 60;
+	private static final double WIDTH = SQUARE_SIZE*8;
+	private static final double HEIGHT = SPACE*2+SQUARE_SIZE*8;
 	private volatile int frames, fps;
 	private static final int FPS = 40;
 	
@@ -57,8 +59,8 @@ public class MainApplication extends Application{
 		canvas.setOnMousePressed(e -> {
 			if (e.getButton() == MouseButton.PRIMARY){
 				if (this.gameFinished) return;
-				int x = (int)(e.getX()/75);
-				int y = (int)((e.getY()-100)/75);
+				int x = (int)(e.getX()/SQUARE_SIZE);
+				int y = (int)((e.getY()-SPACE)/SQUARE_SIZE);
 				String not = Board.convertPosition(x, y);
 				if (not != null){
 					if (this.currentSelection != null){
@@ -67,6 +69,7 @@ public class MainApplication extends Application{
 							this.currentSelection = null;
 							this.currentMoves = null;
 							this.animation = null;
+							this.gameFinished = this.board.isCheckMate(Color.WHITE) || this.board.isCheckMate(Color.BLACK) || this.board.isDraw();
 							//if (ok) makeEngineMove();
 						});
 						Piece piece = this.board.getBoard()[Board.convertNotation(this.currentSelection)[0]][Board.convertNotation(this.currentSelection)[1]];
@@ -84,6 +87,7 @@ public class MainApplication extends Application{
 				}
 			} else if (e.getButton() == MouseButton.SECONDARY){
 				System.out.println(this.board.getFEN());
+				System.out.println(this.board.getPGN());
 			} else if (e.getButton() == MouseButton.MIDDLE){
 				makeEngineMove();
 			}
@@ -122,11 +126,12 @@ public class MainApplication extends Application{
 	
 	private void makeEngineMove(){
 		new Thread(() -> {
-			String output = this.engine.getBestMove(board.getFEN(), 150);
+			String output = this.engine.getBestMove(board.getFEN(), 500);
 			if (output != null){
 				this.animation = new PieceAnimation(output.split(" ")[0], output.split(" ")[1], () -> {
 					this.board.move(output.split(" ")[0], output.split(" ")[1]);
 					this.animation = null;
+					this.gameFinished = this.board.isCheckMate(Color.WHITE) || this.board.isCheckMate(Color.BLACK) || this.board.isDraw();
 				});
 				this.animation.start();
 			}
@@ -134,12 +139,11 @@ public class MainApplication extends Application{
 	}
 	
 	private void update(GraphicsContext gc){
-		this.gameFinished = this.board.isCheckMate(Color.WHITE) || this.board.isCheckMate(Color.BLACK) || this.board.isDraw();
 		gc.clearRect(0, 0, WIDTH, HEIGHT);
 		gc.setFill(Color.CYAN);
 		gc.fillRect(0, 0, WIDTH, HEIGHT);
 		gc.save();
-		gc.translate(0, 100);
+		gc.translate(0, SPACE);
 		Piece[][] pieces = this.board.getBoard();
 		for (int i = 0; i < 8; i++){
 			for (int j = 0; j < 8; j++){
@@ -150,7 +154,7 @@ public class MainApplication extends Application{
 						gc.setFill(Color.RED);
 					}
 				}
-				gc.fillRect(i*75, j*75, 75, 75);
+				gc.fillRect(i*SQUARE_SIZE, j*SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE);
 			}
 		}
 		
@@ -165,10 +169,10 @@ public class MainApplication extends Application{
 					if (piece.getType().getName() == Piece.PIECE_KING){
 						if ((piece.getColor() == Color.WHITE && this.board.getCheckingPieces(Color.WHITE).size() > 0) || (piece.getColor() == Color.BLACK && this.board.getCheckingPieces(Color.BLACK).size() > 0)){
 							gc.setFill(Color.BLUE);
-							gc.fillOval(pos.getX()*75, pos.getY()*75, 75, 75);
+							gc.fillOval(pos.getX()*SQUARE_SIZE, pos.getY()*SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE);
 						}
 					}
-					gc.drawImage(piece.getImage(), pos.getX()*75, pos.getY()*75);
+					gc.drawImage(piece.getImage(), pos.getX()*SQUARE_SIZE, pos.getY()*SQUARE_SIZE);
 				}
 			}
 		}
@@ -177,13 +181,42 @@ public class MainApplication extends Application{
 			for (String move : this.currentMoves){
 				int[] pos = Board.convertNotation(move);
 				gc.setFill(this.board.getBoard()[pos[0]][pos[1]] == null ? Color.YELLOW : Color.BLUE);
-				gc.fillOval(pos[0]*75+25, pos[1]*75+25, 25, 25);
+				gc.fillOval(pos[0]*SQUARE_SIZE+SQUARE_SIZE/3.0, pos[1]*SQUARE_SIZE+SQUARE_SIZE/3.0, SQUARE_SIZE/3.0, SQUARE_SIZE/3.0);
 			}
 		}
 		
 		//gc.setFill(Color.RED);
 		//gc.setFont(new Font("Sans-serif", 15));
 		//gc.fillText(String.format("FPS: %d\n%s", fps, this.board.getBoardInfo()), 30, 230);
+		gc.restore();
+		
+		gc.setFill(Color.BLACK);
+		int bm = this.board.getMaterial(Color.BLACK);
+		int wm = this.board.getMaterial(Color.WHITE);
+		int diff = wm-bm;
+		if (diff < 0) gc.fillText(Integer.toString(-diff), WIDTH*0.05, SPACE/2.0);
+		if (diff > 0) gc.fillText(Integer.toString(diff), WIDTH*0.05, HEIGHT-SPACE/2.0);
+		
+		List<Piece> black = this.board.getMaterialList(Color.BLACK);
+		List<Piece> white = this.board.getMaterialList(Color.WHITE);
+		gc.save();
+		for (int i = 0; i < black.size(); i++){
+			Piece piece = black.get(i);
+			Piece prev = i == 0 ? null : black.get(i-1);
+			gc.translate(prev != null && prev.getType().getValue() == piece.getType().getValue() ? SQUARE_SIZE/4.0 : SQUARE_SIZE/2.0+SQUARE_SIZE/10.0, 0);
+			gc.drawImage(piece.getImage(), WIDTH*0.05, SPACE/2.0, SQUARE_SIZE/2.0, SQUARE_SIZE/2.0);
+		}
+		gc.restore();
+		gc.save();
+		for (int i = 0; i < white.size(); i++){
+			Piece piece = white.get(i);
+			Piece prev = i == 0 ? null : white.get(i-1);
+			gc.translate(prev != null && prev.getType().getValue() == piece.getType().getValue() ? SQUARE_SIZE/4.0 : SQUARE_SIZE/2.0+SQUARE_SIZE/10.0, 0);
+			gc.drawImage(piece.getImage(), WIDTH*0.05, HEIGHT-SPACE/2.0, SQUARE_SIZE/2.0, SQUARE_SIZE/2.0);
+		}
+		gc.restore();
+		
+		gc.fillText("Eval: "+this.eval, WIDTH*0.7, HEIGHT-SPACE*0.7);
 		
 		if (this.gameFinished){
 			gc.save();
@@ -192,35 +225,6 @@ public class MainApplication extends Application{
 			gc.fillRect(0, 0, WIDTH, HEIGHT);
 			gc.restore();
 		}
-		gc.restore();
-		
-		gc.setFill(Color.BLACK);
-		int bm = this.board.getMaterial(Color.BLACK);
-		int wm = this.board.getMaterial(Color.WHITE);
-		int diff = wm-bm;
-		if (diff < 0) gc.fillText(Integer.toString(-diff), 30, 50);
-		if (diff > 0) gc.fillText(Integer.toString(diff), 30, 750);
-		
-		List<Piece> black = this.board.getMaterialList(Color.BLACK);
-		List<Piece> white = this.board.getMaterialList(Color.WHITE);
-		gc.save();
-		for (int i = 0; i < black.size(); i++){
-			Piece piece = black.get(i);
-			Piece prev = i == 0 ? null : black.get(i-1);
-			gc.translate(prev != null && prev.getType().getValue() == piece.getType().getValue() ? 15 : 33, 0);
-			gc.drawImage(piece.getImage(), 30, 60, 30, 30);
-		}
-		gc.restore();
-		gc.save();
-		for (int i = 0; i < white.size(); i++){
-			Piece piece = white.get(i);
-			Piece prev = i == 0 ? null : white.get(i-1);
-			gc.translate(prev != null && prev.getType().getValue() == piece.getType().getValue() ? 15 : 33, 0);
-			gc.drawImage(piece.getImage(), 30, 750, 30, 30);
-		}
-		gc.restore();
-		
-		gc.fillText("Eval: "+this.eval, 500, 770);
 	}
 	
 	public static void main(String[] args) throws IOException{

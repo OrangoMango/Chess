@@ -2,6 +2,7 @@ package com.orangomango.chess;
 
 import javafx.scene.paint.Color;
 import java.util.*;
+import java.text.SimpleDateFormat;
 import java.util.stream.Collectors;
 
 public class Board{
@@ -10,14 +11,16 @@ public class Board{
 	private boolean blackLeftCastleAllowed = true, whiteLeftCastleAllowed = true;
 	private List<Piece> blackCaptured = new ArrayList<>();
 	private List<Piece> whiteCaptured = new ArrayList<>();
+	private int whiteExtraMaterial, blackExtraMaterial;
 	private List<Piece> whiteChecks = new ArrayList<>();
 	private List<Piece> blackChecks = new ArrayList<>();
 	private Piece whiteKing, blackKing;
 	private Color player = Color.WHITE;
-	private int fifty = 0, moves = 1;
+	private int fifty = 0, movesN = 1;
 	private String enPassant = null;
 	private boolean[] canCastle = new boolean[4];
 	private Map<String, Integer> states = new HashMap<>();
+	private List<String> moves = new ArrayList<>();
 	
 	public Board(String fen){
 		this.board = new Piece[8][8];
@@ -82,12 +85,56 @@ public class Board{
 		if (!ep.equals("-")) this.enPassant = ep;
 		
 		this.fifty = Integer.parseInt(String.valueOf(data[4]));
-		this.moves = Integer.parseInt(String.valueOf(data[5]));
+		this.movesN = Integer.parseInt(String.valueOf(data[5]));
 		
 		this.states.put(getFEN().split(" ")[0], 1);
+		
+		setupCaptures(Color.WHITE);
+		setupCaptures(Color.BLACK);
+		
+	}
+	
+	private void setupCaptures(Color color){
+		List<Piece> pieces = getPiecesOnBoard().stream().filter(piece -> piece.getColor() == color).collect(Collectors.toList());
+		List<Piece> captures = color == Color.WHITE ? this.blackCaptured : this.whiteCaptured;
+		int pawns = (int)pieces.stream().filter(piece -> piece.getType().getName() == Piece.PIECE_PAWN).count();
+		int rooks = (int)pieces.stream().filter(piece -> piece.getType().getName() == Piece.PIECE_ROOK).count();
+		int knights = (int)pieces.stream().filter(piece -> piece.getType().getName() == Piece.PIECE_KNIGHT).count();
+		int bishops = (int)pieces.stream().filter(piece -> piece.getType().getName() == Piece.PIECE_BISHOP).count();
+		int queens = (int)pieces.stream().filter(piece -> piece.getType().getName() == Piece.PIECE_QUEEN).count();
+		for (int i = 0; i < 8-pawns; i++){
+			captures.add(new Piece(Piece.Pieces.PAWN, color, -1, -1));
+		}
+		for (int i = 0; i < 2-rooks; i++){
+			captures.add(new Piece(Piece.Pieces.ROOK, color, -1, -1));
+		}
+		for (int i = 0; i < 2-knights; i++){
+			captures.add(new Piece(Piece.Pieces.KNIGHT, color, -1, -1));
+		}
+		for (int i = 0; i < 2-bishops; i++){
+			captures.add(new Piece(Piece.Pieces.BISHOP, color, -1, -1));
+		}
+		if (queens == 0){
+			captures.add(new Piece(Piece.Pieces.QUEEN, color, -1, -1));
+		}
+		
+		for (int i = 0; i < -(2-rooks); i++){
+			promote(color, Piece.Pieces.ROOK);
+		}
+		for (int i = 0; i < -(2-knights); i++){
+			promote(color, Piece.Pieces.KNIGHT);
+		}
+		for (int i = 0; i < -(2-bishops); i++){
+			promote(color, Piece.Pieces.BISHOP);
+		}
+		for (int i = 0; i < -(1-queens); i++){
+			promote(color, Piece.Pieces.QUEEN);
+			System.out.println(color);
+		}
 	}
 	
 	public boolean move(String pos1, String pos){
+		if (pos1 == null || pos == null) return false;
 		int[] p1 = convertNotation(pos1);
 		
 		Piece piece = this.board[p1[0]][p1[1]];
@@ -158,8 +205,7 @@ public class Board{
 				this.fifty = 0;
 				if ((piece.getColor() == Color.WHITE && piece.getY() == 0) || (piece.getColor() == Color.BLACK && piece.getY() == 7)){
 					this.board[piece.getX()][piece.getY()] = new Piece(Piece.Pieces.QUEEN, piece.getColor(), piece.getX(), piece.getY());
-					capture(piece);
-					promote(piece, Piece.Pieces.QUEEN);
+					promote(piece.getColor(), Piece.Pieces.QUEEN);
 					prom = "Q";
 				}
 				if (Math.abs(p2[1]-p1[1]) == 2){
@@ -179,29 +225,33 @@ public class Board{
 			
 			this.blackChecks.clear();
 			this.whiteChecks.clear();
+			boolean check = false;
 			for (Piece boardPiece : getPiecesOnBoard()){
 				List<String> newLegalMoves = getLegalMoves(boardPiece);
 				if (boardPiece.getColor() == Color.WHITE && newLegalMoves.contains(convertPosition(this.blackKing.getX(), this.blackKing.getY()))){
 					this.blackChecks.add(boardPiece);
+					check = true;
 				} else if (piece.getColor() == Color.BLACK && newLegalMoves.contains(convertPosition(this.whiteKing.getX(), this.whiteKing.getY()))){
 					this.whiteChecks.add(boardPiece);
+					check = true;
 				}
 			}
 
-			if (this.player == Color.BLACK) this.moves++;
+			if (this.player == Color.BLACK) this.movesN++;
 			this.player = this.player == Color.WHITE ? Color.BLACK : Color.WHITE;
 			
 			String fen = getFEN().split(" ")[0];
 			this.states.put(fen, this.states.getOrDefault(fen, 0)+1);
 			
-			System.out.println(moveToString(piece, pos1, pos, this.blackChecks.contains(piece) || this.whiteChecks.contains(piece), capture != null, prom, identical));
+			this.moves.add(moveToString(piece, pos1, pos, check, capture != null, prom, identical));
 			
 			return true;
 		}
 		return false;
 	}
 	
-	public String moveToString(Piece piece, String start, String pos, boolean check, boolean capture, String prom, List<Piece> identical){
+	private String moveToString(Piece piece, String start, String pos, boolean check, boolean capture, String prom, List<Piece> identical){
+		int[] coord = convertNotation(start);
 		String output = "";
 		if (piece.getType().getName() == Piece.PIECE_PAWN){
 			if (capture){
@@ -209,7 +259,7 @@ public class Board{
 			} else {
 				output = pos;
 			}
-		} else if (piece.getType().getName() == Piece.PIECE_KING && Math.abs(convertNotation(start)[0]-piece.getX()) == 2){
+		} else if (piece.getType().getName() == Piece.PIECE_KING && Math.abs(coord[0]-piece.getX()) == 2){
 			output = piece.getX() == 2 ? "O-O-O" : "O-O";
 		} else if (prom != null){
 			output = pos+"="+prom;
@@ -219,9 +269,9 @@ public class Board{
 				extra = start;
 			} else if (identical.size() == 1){
 				Piece other = identical.get(0);
-				if (piece.getX() != other.getX()){
+				if (coord[0] != other.getX()){
 					extra = String.valueOf(start.charAt(0));
-				} else if (piece.getY() != other.getY()){
+				} else if (coord[1] != other.getY()){
 					extra = String.valueOf(start.charAt(1));
 				}
 			}
@@ -384,8 +434,8 @@ public class Board{
 		this.fifty = 0;
 	}
 	
-	private void promote(Piece p, Piece.Pieces type){
-		List<Piece> list = p.getColor() == Color.BLACK ? this.whiteCaptured : this.blackCaptured;
+	private void promote(Color color, Piece.Pieces type){
+		List<Piece> list = color == Color.BLACK ? this.whiteCaptured : this.blackCaptured;
 		Iterator<Piece> iterator = list.iterator();
 		boolean removed = false;
 		while (iterator.hasNext()){
@@ -397,8 +447,11 @@ public class Board{
 			}
 		}
 		if (!removed){
-			List<Piece> other = p.getColor() == Color.BLACK ? this.blackCaptured : this.whiteCaptured;
-			other.add(new Piece(type, p.getColor() == Color.BLACK ? Color.WHITE : Color.BLACK, p.getX(), p.getY()));
+			if (color == Color.WHITE){
+				this.whiteExtraMaterial += type.getValue();
+			} else {
+				this.blackExtraMaterial += type.getValue();
+			}
 		}
 	}
 	
@@ -556,6 +609,33 @@ public class Board{
 		return this.board;
 	}
 	
+	public String getPGN(){
+		StringBuilder builder = new StringBuilder();
+		SimpleDateFormat format = new SimpleDateFormat("YYYY/MM/dd");
+		Date date = new Date();
+		builder.append("[Event \""+System.getProperty("user.name")+" vs stockfish"+"\"]\n");
+		builder.append("[Site \"OrangoMangoChess\"]\n");
+		builder.append("[Date \""+format.format(date)+"\"]\n");
+		builder.append("[Round \"1\"]\n");
+		builder.append("[White \""+System.getProperty("user.name")+"\"]\n");
+		builder.append("[Black \"stockfish\"]\n");
+		String result = "*";
+		if (isDraw()){
+			result = "½-½";
+		} else if (isCheckMate(Color.WHITE)){
+			result = "1-0";
+		} else if (isCheckMate(Color.BLACK)){
+			result = "0-1";
+		}
+		builder.append("[Result \""+result+"\"]\n\n");
+		for (int i = 0; i < this.moves.size(); i++){
+			if (i % 2 == 0) builder.append((i/2+1)+".");
+			builder.append(this.moves.get(i)+" ");
+		}
+		builder.append(result);
+		return builder.toString();
+	}
+	
 	public String getFEN(){
 		StringBuilder builder = new StringBuilder();
 		for (int i = 0; i < 8; i++){
@@ -578,21 +658,23 @@ public class Board{
 		
 		builder.append(this.player == Color.WHITE ? " w " : " b ");
 		
+		boolean no = false;
 		if (!this.whiteLeftCastleAllowed && !this.whiteRightCastleAllowed){
 			builder.append("-");
+			no = true;
 		} else {
 			if (this.whiteRightCastleAllowed) builder.append("K");
 			if (this.whiteLeftCastleAllowed) builder.append("Q");
 		}
 		if (!this.blackLeftCastleAllowed && !this.blackRightCastleAllowed){
-			builder.append("-");
+			if (!no) builder.append("-");
 		} else {
 			if (this.blackRightCastleAllowed) builder.append("k");
 			if (this.blackLeftCastleAllowed) builder.append("q");
 		}
 		builder.append(" ");
 		
-		builder.append(String.format("%s %d %d", this.enPassant == null ? "-" : this.enPassant, this.fifty, this.moves));
+		builder.append(String.format("%s %d %d", this.enPassant == null ? "-" : this.enPassant, this.fifty, this.movesN));
 		
 		return builder.toString();
 	}
@@ -642,7 +724,7 @@ public class Board{
 	}
 	
 	public int getMaterial(Color color){
-		return getMaterialList(color).stream().mapToInt(p -> p.getType().getValue()).sum();
+		return getMaterialList(color).stream().mapToInt(p -> p.getType().getValue()).sum()+(color == Color.WHITE ? this.whiteExtraMaterial : this.blackExtraMaterial);
 	}
 	
 	public Color getPlayer(){
