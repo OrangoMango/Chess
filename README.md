@@ -1,5 +1,6 @@
 # Chess
-Chess GUI made in JavaFX.
+Chess GUI made in JavaFX. To change the game settings, click on the background.  
+*Under development, this application is currently in beta*
 ## Features
 * Default chess rules (Capture, movement, en passant, castle, promotion)
 * Play on the same board or **in LAN**
