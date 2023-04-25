@@ -6,7 +6,6 @@ import javafx.scene.Scene;
 import javafx.scene.layout.StackPane;
 import javafx.scene.canvas.*;
 import javafx.scene.input.MouseButton;
-import javafx.scene.input.KeyCode;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.Clipboard;
 import javafx.scene.paint.Color;
@@ -180,7 +179,6 @@ public class MainApplication extends Application{
 					});
 					CheckBox otb = new CheckBox("Over the board");
 					CheckBox eng = new CheckBox("Play against stockfish");
-					eng.setDisable(!this.engine.isRunning());
 					eng.setSelected(this.engineMove);
 					eng.setOnAction(ev -> {
 						this.overTheBoard = true;
@@ -221,7 +219,7 @@ public class MainApplication extends Application{
 						Clipboard cb = Clipboard.getSystemClipboard();
 						cb.setContent(cc);
 					});
-					startEngine.setDisable(!this.engine.isRunning());
+					startEngine.setDisable((this.board.getMovesN() > 1 && !this.gameFinished) || !this.engine.isRunning());
 					startEngine.setOnAction(ev -> {
 						this.overTheBoard = true;
 						new Thread(() -> {
@@ -250,7 +248,7 @@ public class MainApplication extends Application{
 					clientInfo.setDisable(this.board.getMovesN() > 1 && !this.gameFinished);
 					whiteBlack.setDisable(this.board.getMovesN() > 1 && !this.gameFinished);
 					rs.setDisable(this.board.getMovesN() > 1 && !this.gameFinished);
-					eng.setDisable(this.board.getMovesN() > 1 && !this.gameFinished);
+					eng.setDisable((this.board.getMovesN() > 1 && !this.gameFinished) || !this.engine.isRunning());
 					otb.setDisable((this.board.getMovesN() > 1 && !this.gameFinished) || this.client != null);
 					layout.add(serverInfo, 0, 0);
 					layout.add(clientInfo, 0, 1);
