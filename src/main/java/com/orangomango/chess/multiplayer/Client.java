@@ -40,6 +40,10 @@ public class Client{
 		return this.color;
 	}
 	
+	public boolean isConnected(){
+		return this.socket != null && this.socket.isConnected();
+	}
+	
 	public void sendMessage(String message){
 		try {
 			this.writer.write(message);

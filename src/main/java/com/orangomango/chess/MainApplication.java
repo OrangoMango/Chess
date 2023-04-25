@@ -7,6 +7,8 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.canvas.*;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.KeyCode;
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.Clipboard;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.layout.*;
@@ -68,7 +70,7 @@ public class MainApplication extends Application{
 		
 		this.viewPoint = startColor;
 
-		stage.setTitle("Chess - "+(this.viewPoint == Color.WHITE ? "WHITE" : "BLACK"));
+		stage.setTitle("Chess");
 		StackPane pane = new StackPane();
 		Canvas canvas = new Canvas(WIDTH, HEIGHT);
 		GraphicsContext gc = canvas.getGraphicsContext2D();
@@ -78,6 +80,7 @@ public class MainApplication extends Application{
 		this.engine = new Engine();
 		
 		canvas.setOnMousePressed(e -> {
+			if (Server.clients.size() == 1) return;
 			if (e.getButton() == MouseButton.PRIMARY){
 				int x = (int)(e.getX()/SQUARE_SIZE);
 				int y = (int)((e.getY()-SPACE)/SQUARE_SIZE);
@@ -142,11 +145,19 @@ public class MainApplication extends Application{
 						Server server = new Server(ip, port);
 						alert.close();
 					});
+					TextArea data = new TextArea(this.board.getFEN()+"\n\n"+this.board.getPGN());
 					Button connect = new Button("Connect");
 					connect.setOnAction(ev -> {
 						String ip = cip.getText().equals("") ? "192.168.1.247" : cip.getText();
 						int port = cport.getText().equals("") ? 1234 : Integer.parseInt(cport.getText());
 						this.client = new Client(ip, port, this.viewPoint);
+						if (Server.clients.size() == 1){
+							reset(data.getText());
+						}
+						if (!this.client.isConnected()){
+							this.client = null;
+							return;
+						}
 						this.viewPoint = this.client.getColor();
 						Thread listener = new Thread(() -> {
 							while (!this.gameFinished){
@@ -169,14 +180,14 @@ public class MainApplication extends Application{
 					});
 					CheckBox otb = new CheckBox("Over the board");
 					CheckBox eng = new CheckBox("Play against stockfish");
-					otb.disableProperty().bindBidirectional(eng.selectedProperty());
 					eng.setDisable(!this.engine.isRunning());
 					eng.setSelected(this.engineMove);
 					eng.setOnAction(ev -> {
 						this.overTheBoard = true;
 						otb.setSelected(true);
 						this.engineMove = eng.isSelected();
-						if (this.engineMove && this.viewPoint == Color.BLACK){
+						otb.setDisable(this.engineMove);
+						if (this.engineMove && this.board.getPlayer() != this.viewPoint){
 							makeEngineMove();
 							this.board.playerA = "stockfish";
 							this.board.playerB = System.getProperty("user.name");
@@ -196,30 +207,59 @@ public class MainApplication extends Application{
 							this.board.playerB = System.getProperty("user.name");
 						}
 					});
-					TextArea data = new TextArea(this.board.getFEN()+"\n\n"+this.board.getPGN());
 					data.setMaxWidth(WIDTH*0.7);
 					w.setToggleGroup(grp);
 					w.setSelected(this.viewPoint == Color.WHITE);
 					b.setSelected(this.viewPoint == Color.BLACK);
 					b.setToggleGroup(grp);
 					Button reset = new Button("Reset board");
-					reset.setOnAction(ev -> {
-						String text = data.getText();
-						String fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-						if (text.startsWith("CUSTOM\n")){
-							fen = text.split("\n")[1];
-						}
-						this.board = new Board(fen);
-						this.gameFinished = false;
+					Button startEngine = new Button("Start engine thread");
+					Button copy = new Button("Copy");
+					copy.setOnAction(ev -> {
+						ClipboardContent cc = new ClipboardContent();
+						cc.putString(data.getText());
+						Clipboard cb = Clipboard.getSystemClipboard();
+						cb.setContent(cc);
+					});
+					startEngine.setDisable(!this.engine.isRunning());
+					startEngine.setOnAction(ev -> {
+						this.overTheBoard = true;
+						new Thread(() -> {
+							try {
+								Thread.sleep(2000);
+								while (!this.gameFinished){
+									makeEngineMove();
+									Thread.sleep(1000);
+								}
+							} catch (InterruptedException ex){
+								ex.printStackTrace();
+							}
+						}).start();
 						alert.close();
 					});
-					layout.add(new HBox(5, sip, sport, startServer), 0, 0);
-					layout.add(new HBox(5, cip, cport, connect), 0, 1);
+					reset.setOnAction(ev -> {
+						String text = data.getText();
+						reset(text);
+						alert.close();
+					});
+					HBox serverInfo = new HBox(5, sip, sport, startServer);
+					HBox clientInfo = new HBox(5, cip, cport, connect);
+					HBox whiteBlack = new HBox(5, w, b);
+					HBox rs = new HBox(5, reset, startEngine);
+					serverInfo.setDisable(this.board.getMovesN() > 1 && !this.gameFinished);
+					clientInfo.setDisable(this.board.getMovesN() > 1 && !this.gameFinished);
+					whiteBlack.setDisable(this.board.getMovesN() > 1 && !this.gameFinished);
+					rs.setDisable(this.board.getMovesN() > 1 && !this.gameFinished);
+					eng.setDisable(this.board.getMovesN() > 1 && !this.gameFinished);
+					otb.setDisable((this.board.getMovesN() > 1 && !this.gameFinished) || this.client != null);
+					layout.add(serverInfo, 0, 0);
+					layout.add(clientInfo, 0, 1);
 					layout.add(eng, 0, 2);
 					layout.add(otb, 0, 3);
-					layout.add(new HBox(5, w, b), 0, 4);
-					layout.add(reset, 0, 5);
-					layout.add(data, 0, 6);
+					layout.add(whiteBlack, 0, 4);
+					layout.add(rs, 0, 5);
+					layout.add(copy, 0, 6);
+					layout.add(data, 0, 7);
 					alert.getDialogPane().setContent(layout);
 					alert.showAndWait();
 				}
@@ -261,18 +301,15 @@ public class MainApplication extends Application{
 		stage.setResizable(false);
 		stage.setScene(new Scene(pane, WIDTH, HEIGHT));
 		stage.show();
-		
-		/*new Thread(() -> {
-			try {
-				Thread.sleep(5000);
-				while (!this.gameFinished){
-					makeEngineMove();
-					Thread.sleep(1000);
-				}
-			} catch (InterruptedException ex){
-				ex.printStackTrace();
-			}
-		}).start();*/
+	}
+	
+	private void reset(String text){
+		String fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+		if (text.startsWith("CUSTOM\n") && (this.board.getMovesN() == 1 || this.gameFinished)){
+			fen = text.split("\n")[1];
+		}
+		this.board = new Board(fen);
+		this.gameFinished = false;
 	}
 	
 	private void makeEngineMove(){
@@ -374,12 +411,13 @@ public class MainApplication extends Application{
 		
 		gc.fillText("Eval: "+this.eval, WIDTH*0.7, HEIGHT-SPACE*0.7);
 		
-		if (this.gameFinished){
+		if (this.gameFinished || Server.clients.size() == 1){
 			gc.save();
 			gc.setFill(Color.BLACK);
 			gc.setGlobalAlpha(0.6);
 			gc.fillRect(0, 0, WIDTH, HEIGHT);
 			gc.restore();
+			if (this.gameFinished) this.client = null;
 		}
 	}
 	

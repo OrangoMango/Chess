@@ -1,6 +1,7 @@
 package com.orangomango.chess;
 
 import javafx.scene.paint.Color;
+
 import java.util.*;
 import java.text.SimpleDateFormat;
 import java.util.stream.Collectors;
@@ -87,6 +88,7 @@ public class Board{
 		this.fifty = Integer.parseInt(String.valueOf(data[4]));
 		this.movesN = Integer.parseInt(String.valueOf(data[5]));
 		
+		this.states.clear();
 		this.states.put(getFEN().split(" ")[0], 1);
 		
 		setupCaptures(Color.WHITE);
@@ -119,18 +121,25 @@ public class Board{
 		}
 		
 		for (int i = 0; i < -(2-rooks); i++){
+			capture(new Piece(Piece.Pieces.PAWN, color, -1, -1));
 			promote(color, Piece.Pieces.ROOK);
 		}
 		for (int i = 0; i < -(2-knights); i++){
+			capture(new Piece(Piece.Pieces.PAWN, color, -1, -1));
 			promote(color, Piece.Pieces.KNIGHT);
 		}
 		for (int i = 0; i < -(2-bishops); i++){
+			capture(new Piece(Piece.Pieces.PAWN, color, -1, -1));
 			promote(color, Piece.Pieces.BISHOP);
 		}
 		for (int i = 0; i < -(1-queens); i++){
+			capture(new Piece(Piece.Pieces.PAWN, color, -1, -1));
 			promote(color, Piece.Pieces.QUEEN);
-			System.out.println(color);
 		}
+	}
+	
+	public int getMovesN(){
+		return this.movesN;
 	}
 	
 	public boolean move(String pos1, String pos){
@@ -208,6 +217,7 @@ public class Board{
 				this.fifty = 0;
 				if ((piece.getColor() == Color.WHITE && piece.getY() == 0) || (piece.getColor() == Color.BLACK && piece.getY() == 7)){
 					this.board[piece.getX()][piece.getY()] = new Piece(Piece.Pieces.QUEEN, piece.getColor(), piece.getX(), piece.getY());
+					capture(piece);
 					promote(piece.getColor(), Piece.Pieces.QUEEN);
 					prom = "Q";
 				}
@@ -480,7 +490,8 @@ public class Board{
 		return result.size() == 0 ? null : result;
 	}
 	
-	private boolean canKingMove(Piece king){
+	private boolean canKingMove(Color color){
+		Piece king = color == Color.WHITE ? this.whiteKing : this.blackKing;
 		Piece[][] backup = createBackup();
 		
 		// Check if king has any legal moves
@@ -694,7 +705,7 @@ public class Board{
 	
 	public boolean isCheckMate(Color color){
 		Piece king = color == Color.WHITE ? this.whiteKing : this.blackKing;
-		return canBeCaptured(king) != null && !canKingMove(king);
+		return canBeCaptured(king) != null && !canKingMove(color);
 	}
 	
 	public boolean isDraw(){
@@ -714,7 +725,7 @@ public class Board{
 		boolean whiteDraw = whitePieces == 0 || (whitePieces == 3 && pieces.stream().filter(piece -> piece.getColor() == Color.WHITE).count() == 2);
 		boolean blackDraw = blackPieces == 0 || (blackPieces == 3 && pieces.stream().filter(piece -> piece.getColor() == Color.BLACK).count() == 2);
 		if (whiteDraw && blackDraw) return true;
-		if ((canBeCaptured(this.blackKing) == null && !canKingMove(this.blackKing) && blackLegalMoves.size() == 0 && this.player == Color.BLACK) || (canBeCaptured(this.whiteKing) == null && !canKingMove(this.whiteKing)) && whiteLegalMoves.size() == 0 && this.player == Color.WHITE){
+		if ((canBeCaptured(this.blackKing) == null && !canKingMove(Color.BLACK) && blackLegalMoves.size() == 0 && this.player == Color.BLACK) || (canBeCaptured(this.whiteKing) == null && !canKingMove(Color.WHITE)) && whiteLegalMoves.size() == 0 && this.player == Color.WHITE){
 			return true;
 		}
 		if (this.states.values().contains(3)) return true;
