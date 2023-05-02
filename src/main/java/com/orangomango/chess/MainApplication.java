@@ -5,6 +5,7 @@ import javafx.stage.Stage;
 import javafx.scene.Scene;
 import javafx.scene.layout.StackPane;
 import javafx.scene.canvas.*;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.Clipboard;
@@ -42,6 +43,8 @@ public class MainApplication extends Application{
 	private Color viewPoint;
 	private boolean overTheBoard = false;
 	private boolean engineMove = false;
+	
+	private Map<String, String> hold = new HashMap<>();
 	
 	private Client client;
 	private static Color startColor = Color.WHITE;
@@ -81,14 +84,14 @@ public class MainApplication extends Application{
 		canvas.setOnMousePressed(e -> {
 			if (Server.clients.size() == 1) return;
 			if (e.getButton() == MouseButton.PRIMARY){
+				String not = getNotation(e);
 				int x = (int)(e.getX()/SQUARE_SIZE);
 				int y = (int)((e.getY()-SPACE)/SQUARE_SIZE);
 				if (this.viewPoint == Color.BLACK){
 					x = 7-x;
 					y = 7-y;
 				}
-				String not = Board.convertPosition(x, y);
-				if (not != null && e.getY() > SPACE){
+				if (not != null){
 					if (this.gameFinished || (this.board.getPlayer() != this.viewPoint && !this.overTheBoard)) return;
 					if (this.currentSelection != null){
 						this.animation = new PieceAnimation(this.currentSelection, not, () -> {
@@ -113,6 +116,8 @@ public class MainApplication extends Application{
 						this.currentMoves = this.board.getValidMoves(this.board.getBoard()[x][y]);
 					}
 				} else {
+					System.out.println(this.board.getFEN());
+					System.out.println(this.board.getPGN());
 					Alert alert = new Alert(Alert.AlertType.INFORMATION);
 					alert.setTitle("Settings");
 					alert.setHeaderText("Setup game");
@@ -262,13 +267,30 @@ public class MainApplication extends Application{
 					alert.showAndWait();
 				}
 			} else if (e.getButton() == MouseButton.SECONDARY){
-				System.out.println(this.board.getFEN());
-				System.out.println(this.board.getPGN());
+				String h = getNotation(e);
+				if (h != null){
+					this.hold.put(h, null);
+				}
 			} else if (e.getButton() == MouseButton.MIDDLE){
 				if (this.gameFinished || (this.board.getPlayer() != this.viewPoint && !this.overTheBoard)) return;
 				makeEngineMove();
 			}
 			
+		});
+		
+		canvas.setOnMouseReleased(e -> {
+			String h = getNotation(e);
+			String f = null;
+			for (Map.Entry<String, String> entry : this.hold.entrySet()){
+				if (entry.getValue() == null) f = entry.getKey();
+			}
+			if (f != null){
+				if (f.equals(h)){
+					this.hold.clear();
+				} else {
+					this.hold.put(f, h);
+				}
+			}
 		});
 		
 		Timeline loop = new Timeline(new KeyFrame(Duration.millis(1000.0/FPS), e -> update(gc)));
@@ -284,9 +306,10 @@ public class MainApplication extends Application{
 		timer.start();
 		
 		Thread evalCalculator = new Thread(() -> {
+			Engine eng = new Engine();
 			try {
-				while (this.engine.isRunning()){
-					this.eval = this.engine.getEval(this.board.getFEN());
+				while (eng.isRunning()){
+					this.eval = eng.getEval(this.board.getFEN());
 					Thread.sleep(100);
 				}
 			} catch (InterruptedException ex){
@@ -299,6 +322,17 @@ public class MainApplication extends Application{
 		stage.setResizable(false);
 		stage.setScene(new Scene(pane, WIDTH, HEIGHT));
 		stage.show();
+	}
+	
+	private String getNotation(MouseEvent e){
+		if (e.getY() < SPACE) return null;
+		int x = (int)(e.getX()/SQUARE_SIZE);
+		int y = (int)((e.getY()-SPACE)/SQUARE_SIZE);
+		if (this.viewPoint == Color.BLACK){
+			x = 7-x;
+			y = 7-y;
+		}
+		return Board.convertPosition(x, y);
 	}
 	
 	private void reset(String text){
@@ -406,6 +440,35 @@ public class MainApplication extends Application{
 			gc.drawImage(piece.getImage(), WIDTH*0.05, this.viewPoint == Color.WHITE ? HEIGHT-SPACE*0.6 : SPACE/2.0, SQUARE_SIZE/2.0, SQUARE_SIZE/2.0);
 		}
 		gc.restore();
+
+		for (Map.Entry<String, String> entry : this.hold.entrySet()){
+			if (entry.getKey() == null || entry.getValue() == null) continue;
+			int[] h1 = Board.convertNotation(entry.getKey());
+			int[] h2 = Board.convertNotation(entry.getValue());
+			
+			gc.save();
+			gc.setLineWidth(9);
+			gc.setGlobalAlpha(0.6);
+			gc.setStroke(Color.ORANGE);
+			double rad;
+			
+			// Knight
+			if (Math.abs(h2[0]-h1[0])*Math.abs(h2[1]-h1[1]) == 2){
+				gc.strokeLine(h1[0]*SQUARE_SIZE+SQUARE_SIZE/2.0, h1[1]*SQUARE_SIZE+SPACE+SQUARE_SIZE/2.0, h1[0]*SQUARE_SIZE+SQUARE_SIZE/2.0, h2[1]*SQUARE_SIZE+SPACE+SQUARE_SIZE/2.0);
+				gc.strokeLine(h1[0]*SQUARE_SIZE+SQUARE_SIZE/2.0, h2[1]*SQUARE_SIZE+SPACE+SQUARE_SIZE/2.0, h2[0]*SQUARE_SIZE+SQUARE_SIZE/2.0, h2[1]*SQUARE_SIZE+SPACE+SQUARE_SIZE/2.0);
+				rad = Math.atan2(0, h2[0]-h1[0]);
+			} else {
+				gc.strokeLine(h1[0]*SQUARE_SIZE+SQUARE_SIZE/2.0, h1[1]*SQUARE_SIZE+SPACE+SQUARE_SIZE/2.0, h2[0]*SQUARE_SIZE+SQUARE_SIZE/2.0, h2[1]*SQUARE_SIZE+SPACE+SQUARE_SIZE/2.0);
+				rad = Math.atan2(h2[1]-h1[1], h2[0]-h1[0]);
+			}
+			
+			gc.setFill(Color.ORANGE);
+			gc.translate(h2[0]*SQUARE_SIZE+SQUARE_SIZE*0.5, h2[1]*SQUARE_SIZE+SPACE+SQUARE_SIZE*0.5);
+			gc.rotate(Math.toDegrees(rad));
+			gc.fillPolygon(new double[]{-SQUARE_SIZE*0.3, -SQUARE_SIZE*0.3, SQUARE_SIZE*0.3}, new double[]{-SQUARE_SIZE*0.3, SQUARE_SIZE*0.3, 0}, 3);
+			
+			gc.restore();
+		}
 		
 		gc.fillText("Eval: "+this.eval, WIDTH*0.7, HEIGHT-SPACE*0.7);
 		

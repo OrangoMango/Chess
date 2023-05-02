@@ -55,22 +55,18 @@ public class Engine{
 	}
 	
 	public String getBestMove(String fen, int moveTime){
-		synchronized (this){
-			writeCommand("position fen "+fen);
-			writeCommand("go movetime "+moveTime);
-			String output = getOutput(moveTime+150).split("bestmove ")[1].split(" ")[0];
-			if (output.trim().equals("(none)")) return null;
-			char[] c = output.toCharArray();
-			return String.valueOf(c[0])+String.valueOf(c[1])+" "+String.valueOf(c[2])+String.valueOf(c[3]);
-		}
+		writeCommand("position fen "+fen);
+		writeCommand("go movetime "+moveTime);
+		String output = getOutput(moveTime+150).split("bestmove ")[1].split(" ")[0];
+		if (output.trim().equals("(none)")) return null;
+		char[] c = output.toCharArray();
+		return String.valueOf(c[0])+String.valueOf(c[1])+" "+String.valueOf(c[2])+String.valueOf(c[3]);
 	}
 	
 	public String getEval(String fen){
-		synchronized (this){
-			writeCommand("position fen "+fen);
-			writeCommand("eval");
-			String output = getOutput(50).split("Final evaluation: ")[1].split("\\(")[0].trim();
-			return output;
-		}
+		writeCommand("position fen "+fen);
+		writeCommand("eval");
+		String output = getOutput(50).split("Final evaluation: ")[1].split("\\(")[0].trim();
+		return output;
 	}
 }
