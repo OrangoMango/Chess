@@ -44,7 +44,10 @@ public class MainApplication extends Application{
 	private boolean overTheBoard = false;
 	private boolean engineMove = false;
 	
-	private Map<String, String> hold = new HashMap<>();
+	private Map<String, List<String>> hold = new HashMap<>();
+	private String currentHold;
+	private String moveStart, moveEnd;
+	private List<Premove> premoves = new ArrayList<>();
 	
 	private Client client;
 	private static Color startColor = Color.WHITE;
@@ -53,6 +56,15 @@ public class MainApplication extends Application{
 	public static final Media CAPTURE_SOUND = new Media(MainApplication.class.getResource("/capture.mp3").toExternalForm());
 	public static final Media CASTLE_SOUND = new Media(MainApplication.class.getResource("/castle.mp3").toExternalForm());
 	public static final Media CHECK_SOUND = new Media(MainApplication.class.getResource("/notify.mp3").toExternalForm());
+	
+	private static class Premove{
+		public String startPos, endPos;
+		
+		public Premove(String s, String e){
+			this.startPos = s;
+			this.endPos = e;
+		}
+	}
 	
 	@Override
 	public void start(Stage stage){
@@ -92,28 +104,45 @@ public class MainApplication extends Application{
 					y = 7-y;
 				}
 				if (not != null){
-					if (this.gameFinished || (this.board.getPlayer() != this.viewPoint && !this.overTheBoard)) return;
-					if (this.currentSelection != null){
-						this.animation = new PieceAnimation(this.currentSelection, not, () -> {
-							boolean ok = this.board.move(this.currentSelection, not);
-							if (this.client != null) this.client.sendMessage(this.currentSelection+" "+not);
-							this.currentSelection = null;
-							this.currentMoves = null;
-							this.animation = null;
-							this.gameFinished = this.board.isCheckMate(Color.WHITE) || this.board.isCheckMate(Color.BLACK) || this.board.isDraw();
-							if (ok && this.engineMove) makeEngineMove();
-						});
-						Piece piece = this.board.getBoard()[Board.convertNotation(this.currentSelection)[0]][Board.convertNotation(this.currentSelection)[1]];
-						if (this.board.getValidMoves(piece).contains(not)){
-							this.animation.start();
+					if (this.gameFinished){
+						return;
+					} else if (this.board.getPlayer() != this.viewPoint && (this.engineMove || !this.overTheBoard)){
+						if (this.currentSelection == null){
+							if (this.board.getBoard()[x][y] == null && !getPremoves().contains(not)){
+								this.premoves.clear();
+							} else {
+								this.currentSelection = not;
+							}
 						} else {
+							this.premoves.add(new Premove(this.currentSelection, not));
 							this.currentSelection = null;
-							this.currentMoves = null;
-							this.animation = null;
 						}
-					} else if (this.board.getBoard()[x][y] != null){
-						this.currentSelection = not;
-						this.currentMoves = this.board.getValidMoves(this.board.getBoard()[x][y]);
+					} else {
+						if (this.currentSelection != null){
+							this.animation = new PieceAnimation(this.currentSelection, not, () -> {
+								boolean ok = this.board.move(this.currentSelection, not);
+								if (this.client != null) this.client.sendMessage(this.currentSelection+" "+not);
+								this.moveStart = this.currentSelection;
+								this.moveEnd = not;
+								this.currentSelection = null;
+								this.currentMoves = null;
+								this.hold.clear();
+								this.animation = null;
+								this.gameFinished = this.board.isCheckMate(Color.WHITE) || this.board.isCheckMate(Color.BLACK) || this.board.isDraw();
+								if (ok && this.engineMove) makeEngineMove();
+							});
+							Piece piece = this.board.getBoard()[Board.convertNotation(this.currentSelection)[0]][Board.convertNotation(this.currentSelection)[1]];
+							if (this.board.getValidMoves(piece).contains(not)){
+								this.animation.start();
+							} else {
+								this.currentSelection = null;
+								this.currentMoves = null;
+								this.animation = null;
+							}
+						} else if (this.board.getBoard()[x][y] != null){
+							this.currentSelection = not;
+							this.currentMoves = this.board.getValidMoves(this.board.getBoard()[x][y]);
+						}
 					}
 				} else {
 					System.out.println(this.board.getFEN());
@@ -171,8 +200,12 @@ public class MainApplication extends Application{
 								} else {
 									this.animation = new PieceAnimation(message.split(" ")[0], message.split(" ")[1], () -> {
 										this.board.move(message.split(" ")[0], message.split(" ")[1]);
+										this.hold.clear();
+										this.moveStart = message.split(" ")[0];
+										this.moveEnd = message.split(" ")[1];
 										this.animation = null;
 										this.gameFinished = this.board.isCheckMate(Color.WHITE) || this.board.isCheckMate(Color.BLACK) || this.board.isDraw();
+										makePremove();
 									});
 									this.animation.start();
 								}
@@ -269,7 +302,8 @@ public class MainApplication extends Application{
 			} else if (e.getButton() == MouseButton.SECONDARY){
 				String h = getNotation(e);
 				if (h != null){
-					this.hold.put(h, null);
+					this.currentHold = h;
+					if (!this.hold.keySet().contains(h)) this.hold.put(h, new ArrayList<String>());
 				}
 			} else if (e.getButton() == MouseButton.MIDDLE){
 				if (this.gameFinished || (this.board.getPlayer() != this.viewPoint && !this.overTheBoard)) return;
@@ -280,15 +314,15 @@ public class MainApplication extends Application{
 		
 		canvas.setOnMouseReleased(e -> {
 			String h = getNotation(e);
-			String f = null;
-			for (Map.Entry<String, String> entry : this.hold.entrySet()){
-				if (entry.getValue() == null) f = entry.getKey();
-			}
-			if (f != null){
-				if (f.equals(h)){
-					this.hold.clear();
-				} else {
-					this.hold.put(f, h);
+			if (h != null){
+				String f = this.currentHold;
+				this.currentHold = null;
+				if (f != null){
+					if (f.equals(h)){
+						this.hold.clear();
+					} else {
+						this.hold.get(f).add(h);
+					}
 				}
 			}
 		});
@@ -342,22 +376,63 @@ public class MainApplication extends Application{
 		}
 		this.board = new Board(fen);
 		this.gameFinished = false;
+		this.moveStart = null;
+		this.moveEnd = null;
+		this.hold.clear();
+		this.premoves.clear();
+		this.currentHold = null;
 	}
 	
 	private void makeEngineMove(){
 		if (this.gameFinished) return;
 		new Thread(() -> {
-			String output = this.engine.getBestMove(board.getFEN(), 500);
+			String output = this.engine.getBestMove(board.getFEN(), 1200);
 			if (output != null){
 				this.animation = new PieceAnimation(output.split(" ")[0], output.split(" ")[1], () -> {
 					this.board.move(output.split(" ")[0], output.split(" ")[1]);
 					if (this.client != null) this.client.sendMessage(output.split(" ")[0]+" "+output.split(" ")[1]);
+					this.hold.clear();
+					this.moveStart = output.split(" ")[0];
+					this.moveEnd = output.split(" ")[1];
 					this.animation = null;
 					this.gameFinished = this.board.isCheckMate(Color.WHITE) || this.board.isCheckMate(Color.BLACK) || this.board.isDraw();
+					makePremove();
 				});
 				this.animation.start();
 			}
 		}).start();
+	}
+	
+	private List<String> getPremoves(){
+		List<String> pres = new ArrayList<>();
+		for (Premove p : this.premoves){
+			pres.add(p.startPos);
+			pres.add(p.endPos);
+		}
+		return pres;
+	}
+	
+	private void makePremove(){
+		if (this.gameFinished || this.premoves.size() == 0){
+			this.premoves.clear();
+			return;
+		}
+		Premove pre = this.premoves.remove(0);
+		this.animation = new PieceAnimation(pre.startPos, pre.endPos, () -> {
+			boolean ok = this.board.move(pre.startPos, pre.endPos);
+			if (ok){
+				if (this.client != null) this.client.sendMessage(pre.startPos+" "+pre.endPos);
+				this.hold.clear();
+				this.moveStart = pre.startPos;
+				this.moveEnd = pre.endPos;
+				this.gameFinished = this.board.isCheckMate(Color.WHITE) || this.board.isCheckMate(Color.BLACK) || this.board.isDraw();
+				if (this.engineMove) makeEngineMove();
+			} else {
+				this.premoves.clear();
+			}
+			this.animation = null;
+		});
+		this.animation.start();
 	}
 	
 	private void update(GraphicsContext gc){
@@ -367,14 +442,22 @@ public class MainApplication extends Application{
 		gc.save();
 		gc.translate(0, SPACE);
 		Piece[][] pieces = this.board.getBoard();
+		List<String> pres = getPremoves();
 		for (int i = 0; i < 8; i++){
 			for (int j = 0; j < 8; j++){
 				gc.setFill((i+7*j) % 2 == 0 ? Color.WHITE : Color.GREEN);
+				String not = Board.convertPosition(this.viewPoint == Color.BLACK ? 7-i : i, this.viewPoint == Color.BLACK ? 7-j : j);
 				if (this.currentSelection != null){
 					int[] pos = Board.convertNotation(this.currentSelection);
 					if (i == (this.viewPoint == Color.BLACK ? 7-pos[0] : pos[0]) && j == (this.viewPoint == Color.BLACK ? 7-pos[1] : pos[1])){
 						gc.setFill(Color.RED);
 					}
+				}
+				if (not.equals(this.moveStart) || not.equals(this.moveEnd)){
+					gc.setFill(Color.YELLOW);
+				}
+				if (pres.contains(not)){
+					gc.setFill(Color.BLUE);
 				}
 				gc.fillRect(i*SQUARE_SIZE, j*SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE);
 			}
@@ -415,12 +498,15 @@ public class MainApplication extends Application{
 		//gc.fillText(String.format("FPS: %d\n%s", fps, this.board.getBoardInfo()), 30, 230);
 		gc.restore();
 		
+		double wd = SPACE/2.0;
+		double bd = HEIGHT-SPACE*0.6;
+		
 		gc.setFill(Color.BLACK);
 		int bm = this.board.getMaterial(Color.BLACK);
 		int wm = this.board.getMaterial(Color.WHITE);
 		int diff = wm-bm;
-		if (diff < 0) gc.fillText(Integer.toString(-diff), WIDTH*0.05, this.viewPoint == Color.WHITE ? SPACE/2.0 : HEIGHT-SPACE*0.6);
-		if (diff > 0) gc.fillText(Integer.toString(diff), WIDTH*0.05, this.viewPoint == Color.WHITE ? HEIGHT-SPACE*0.6 : SPACE/2.0);
+		if (diff < 0) gc.fillText(Integer.toString(-diff), WIDTH*0.05, this.viewPoint == Color.WHITE ? wd : bd);
+		if (diff > 0) gc.fillText(Integer.toString(diff), WIDTH*0.05, this.viewPoint == Color.WHITE ? bd : wd);
 		
 		List<Piece> black = this.board.getMaterialList(Color.BLACK);
 		List<Piece> white = this.board.getMaterialList(Color.WHITE);
@@ -429,7 +515,7 @@ public class MainApplication extends Application{
 			Piece piece = black.get(i);
 			Piece prev = i == 0 ? null : black.get(i-1);
 			gc.translate(prev != null && prev.getType().getValue() == piece.getType().getValue() ? SQUARE_SIZE/4.0 : SQUARE_SIZE/2.0+SQUARE_SIZE/10.0, 0);
-			gc.drawImage(piece.getImage(), WIDTH*0.05, this.viewPoint == Color.WHITE ? SPACE/2.0 : HEIGHT-SPACE*0.6, SQUARE_SIZE/2.0, SQUARE_SIZE/2.0);
+			gc.drawImage(piece.getImage(), WIDTH*0.05, this.viewPoint == Color.WHITE ? wd : bd, SQUARE_SIZE/2.0, SQUARE_SIZE/2.0);
 		}
 		gc.restore();
 		gc.save();
@@ -437,37 +523,39 @@ public class MainApplication extends Application{
 			Piece piece = white.get(i);
 			Piece prev = i == 0 ? null : white.get(i-1);
 			gc.translate(prev != null && prev.getType().getValue() == piece.getType().getValue() ? SQUARE_SIZE/4.0 : SQUARE_SIZE/2.0+SQUARE_SIZE/10.0, 0);
-			gc.drawImage(piece.getImage(), WIDTH*0.05, this.viewPoint == Color.WHITE ? HEIGHT-SPACE*0.6 : SPACE/2.0, SQUARE_SIZE/2.0, SQUARE_SIZE/2.0);
+			gc.drawImage(piece.getImage(), WIDTH*0.05, this.viewPoint == Color.WHITE ? bd : wd, SQUARE_SIZE/2.0, SQUARE_SIZE/2.0);
 		}
 		gc.restore();
 
-		for (Map.Entry<String, String> entry : this.hold.entrySet()){
+		for (Map.Entry<String, List<String>> entry : this.hold.entrySet()){
 			if (entry.getKey() == null || entry.getValue() == null) continue;
-			int[] h1 = Board.convertNotation(entry.getKey());
-			int[] h2 = Board.convertNotation(entry.getValue());
-			
-			gc.save();
-			gc.setLineWidth(9);
-			gc.setGlobalAlpha(0.6);
-			gc.setStroke(Color.ORANGE);
-			double rad;
-			
-			// Knight
-			if (Math.abs(h2[0]-h1[0])*Math.abs(h2[1]-h1[1]) == 2){
-				gc.strokeLine(h1[0]*SQUARE_SIZE+SQUARE_SIZE/2.0, h1[1]*SQUARE_SIZE+SPACE+SQUARE_SIZE/2.0, h1[0]*SQUARE_SIZE+SQUARE_SIZE/2.0, h2[1]*SQUARE_SIZE+SPACE+SQUARE_SIZE/2.0);
-				gc.strokeLine(h1[0]*SQUARE_SIZE+SQUARE_SIZE/2.0, h2[1]*SQUARE_SIZE+SPACE+SQUARE_SIZE/2.0, h2[0]*SQUARE_SIZE+SQUARE_SIZE/2.0, h2[1]*SQUARE_SIZE+SPACE+SQUARE_SIZE/2.0);
-				rad = Math.atan2(0, h2[0]-h1[0]);
-			} else {
-				gc.strokeLine(h1[0]*SQUARE_SIZE+SQUARE_SIZE/2.0, h1[1]*SQUARE_SIZE+SPACE+SQUARE_SIZE/2.0, h2[0]*SQUARE_SIZE+SQUARE_SIZE/2.0, h2[1]*SQUARE_SIZE+SPACE+SQUARE_SIZE/2.0);
-				rad = Math.atan2(h2[1]-h1[1], h2[0]-h1[0]);
+			for (String value : entry.getValue()){
+				int[] h1 = Board.convertNotation(entry.getKey());
+				int[] h2 = Board.convertNotation(value);
+				
+				gc.save();
+				gc.setLineWidth(9);
+				gc.setGlobalAlpha(0.6);
+				gc.setStroke(Color.ORANGE);
+				double rad;
+				
+				// Knight
+				if (Math.abs(h2[0]-h1[0])*Math.abs(h2[1]-h1[1]) == 2){
+					gc.strokeLine(h1[0]*SQUARE_SIZE+SQUARE_SIZE/2.0, h1[1]*SQUARE_SIZE+SPACE+SQUARE_SIZE/2.0, h1[0]*SQUARE_SIZE+SQUARE_SIZE/2.0, h2[1]*SQUARE_SIZE+SPACE+SQUARE_SIZE/2.0);
+					gc.strokeLine(h1[0]*SQUARE_SIZE+SQUARE_SIZE/2.0, h2[1]*SQUARE_SIZE+SPACE+SQUARE_SIZE/2.0, h2[0]*SQUARE_SIZE+SQUARE_SIZE/2.0, h2[1]*SQUARE_SIZE+SPACE+SQUARE_SIZE/2.0);
+					rad = Math.atan2(0, h2[0]-h1[0]);
+				} else {
+					gc.strokeLine(h1[0]*SQUARE_SIZE+SQUARE_SIZE/2.0, h1[1]*SQUARE_SIZE+SPACE+SQUARE_SIZE/2.0, h2[0]*SQUARE_SIZE+SQUARE_SIZE/2.0, h2[1]*SQUARE_SIZE+SPACE+SQUARE_SIZE/2.0);
+					rad = Math.atan2(h2[1]-h1[1], h2[0]-h1[0]);
+				}
+				
+				gc.setFill(Color.ORANGE);
+				gc.translate(h2[0]*SQUARE_SIZE+SQUARE_SIZE*0.5, h2[1]*SQUARE_SIZE+SPACE+SQUARE_SIZE*0.5);
+				gc.rotate(Math.toDegrees(rad));
+				gc.fillPolygon(new double[]{-SQUARE_SIZE*0.3, -SQUARE_SIZE*0.3, SQUARE_SIZE*0.3}, new double[]{-SQUARE_SIZE*0.3, SQUARE_SIZE*0.3, 0}, 3);
+				
+				gc.restore();
 			}
-			
-			gc.setFill(Color.ORANGE);
-			gc.translate(h2[0]*SQUARE_SIZE+SQUARE_SIZE*0.5, h2[1]*SQUARE_SIZE+SPACE+SQUARE_SIZE*0.5);
-			gc.rotate(Math.toDegrees(rad));
-			gc.fillPolygon(new double[]{-SQUARE_SIZE*0.3, -SQUARE_SIZE*0.3, SQUARE_SIZE*0.3}, new double[]{-SQUARE_SIZE*0.3, SQUARE_SIZE*0.3, 0}, 3);
-			
-			gc.restore();
 		}
 		
 		gc.fillText("Eval: "+this.eval, WIDTH*0.7, HEIGHT-SPACE*0.7);
