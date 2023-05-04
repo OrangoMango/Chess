@@ -21,13 +21,14 @@ import javafx.scene.control.*;
 
 import java.io.*;
 import java.util.*;
+import java.text.SimpleDateFormat;
 
 import com.orangomango.chess.multiplayer.Server;
 import com.orangomango.chess.multiplayer.Client;
 
 public class MainApplication extends Application{
 	public static final int SQUARE_SIZE = 55;
-	private static final int SPACE = 60;
+	private static final int SPACE = 130;
 	private static final double WIDTH = SQUARE_SIZE*8;
 	private static final double HEIGHT = SPACE*2+SQUARE_SIZE*8;
 	private volatile int frames, fps;
@@ -90,7 +91,7 @@ public class MainApplication extends Application{
 		GraphicsContext gc = canvas.getGraphicsContext2D();
 		pane.getChildren().add(canvas);
 		// startpos: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
-		this.board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+		this.board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 3*60*1000);
 		this.engine = new Engine();
 		
 		canvas.setOnMousePressed(e -> {
@@ -110,7 +111,7 @@ public class MainApplication extends Application{
 						if (this.currentSelection == null){
 							if (this.board.getBoard()[x][y] == null && !getPremoves().contains(not)){
 								this.premoves.clear();
-							} else {
+							} else if (this.board.getBoard()[x][y].getColor() == this.viewPoint){
 								this.currentSelection = not;
 							}
 						} else {
@@ -118,6 +119,7 @@ public class MainApplication extends Application{
 							this.currentSelection = null;
 						}
 					} else {
+						boolean showMoves = false;
 						if (this.currentSelection != null){
 							this.animation = new PieceAnimation(this.currentSelection, not, () -> {
 								boolean ok = this.board.move(this.currentSelection, not);
@@ -128,7 +130,7 @@ public class MainApplication extends Application{
 								this.currentMoves = null;
 								this.hold.clear();
 								this.animation = null;
-								this.gameFinished = this.board.isCheckMate(Color.WHITE) || this.board.isCheckMate(Color.BLACK) || this.board.isDraw();
+								this.gameFinished = this.board.isGameFinished();
 								if (ok && this.engineMove) makeEngineMove();
 							});
 							Piece piece = this.board.getBoard()[Board.convertNotation(this.currentSelection)[0]][Board.convertNotation(this.currentSelection)[1]];
@@ -138,13 +140,17 @@ public class MainApplication extends Application{
 								this.currentSelection = null;
 								this.currentMoves = null;
 								this.animation = null;
+								if (this.board.getBoard()[x][y] != null) showMoves = true;
 							}
 						} else if (this.board.getBoard()[x][y] != null){
+							showMoves = true;
+						}
+						if (showMoves){
 							this.currentSelection = not;
 							this.currentMoves = this.board.getValidMoves(this.board.getBoard()[x][y]);
 						}
 					}
-				} else {
+				} else if (e.getClickCount() == 2){
 					System.out.println(this.board.getFEN());
 					System.out.println(this.board.getPGN());
 					Alert alert = new Alert(Alert.AlertType.INFORMATION);
@@ -204,7 +210,8 @@ public class MainApplication extends Application{
 										this.moveStart = message.split(" ")[0];
 										this.moveEnd = message.split(" ")[1];
 										this.animation = null;
-										this.gameFinished = this.board.isCheckMate(Color.WHITE) || this.board.isCheckMate(Color.BLACK) || this.board.isDraw();
+										this.currentSelection = null;
+										this.gameFinished = this.board.isGameFinished();
 										makePremove();
 									});
 									this.animation.start();
@@ -265,7 +272,7 @@ public class MainApplication extends Application{
 								Thread.sleep(2000);
 								while (!this.gameFinished){
 									makeEngineMove();
-									Thread.sleep(1000);
+									Thread.sleep(2000);
 								}
 							} catch (InterruptedException ex){
 								ex.printStackTrace();
@@ -343,6 +350,7 @@ public class MainApplication extends Application{
 			Engine eng = new Engine();
 			try {
 				while (eng.isRunning()){
+					if (this.gameFinished) continue;
 					this.eval = eng.getEval(this.board.getFEN());
 					Thread.sleep(100);
 				}
@@ -374,7 +382,7 @@ public class MainApplication extends Application{
 		if (text.startsWith("CUSTOM\n") && (this.board.getMovesN() == 1 || this.gameFinished)){
 			fen = text.split("\n")[1];
 		}
-		this.board = new Board(fen);
+		this.board = new Board(fen, 3*60*1000);
 		this.gameFinished = false;
 		this.moveStart = null;
 		this.moveEnd = null;
@@ -386,16 +394,17 @@ public class MainApplication extends Application{
 	private void makeEngineMove(){
 		if (this.gameFinished) return;
 		new Thread(() -> {
-			String output = this.engine.getBestMove(board.getFEN(), 1200);
+			String output = this.engine.getBestMove(board.getFEN(), 700);
 			if (output != null){
 				this.animation = new PieceAnimation(output.split(" ")[0], output.split(" ")[1], () -> {
 					this.board.move(output.split(" ")[0], output.split(" ")[1]);
 					if (this.client != null) this.client.sendMessage(output.split(" ")[0]+" "+output.split(" ")[1]);
 					this.hold.clear();
+					this.currentSelection = null;
 					this.moveStart = output.split(" ")[0];
 					this.moveEnd = output.split(" ")[1];
 					this.animation = null;
-					this.gameFinished = this.board.isCheckMate(Color.WHITE) || this.board.isCheckMate(Color.BLACK) || this.board.isDraw();
+					this.gameFinished = this.board.isGameFinished();
 					makePremove();
 				});
 				this.animation.start();
@@ -425,7 +434,7 @@ public class MainApplication extends Application{
 				this.hold.clear();
 				this.moveStart = pre.startPos;
 				this.moveEnd = pre.endPos;
-				this.gameFinished = this.board.isCheckMate(Color.WHITE) || this.board.isCheckMate(Color.BLACK) || this.board.isDraw();
+				this.gameFinished = this.board.isGameFinished();
 				if (this.engineMove) makeEngineMove();
 			} else {
 				this.premoves.clear();
@@ -453,13 +462,16 @@ public class MainApplication extends Application{
 						gc.setFill(Color.RED);
 					}
 				}
-				if (not.equals(this.moveStart) || not.equals(this.moveEnd)){
-					gc.setFill(Color.YELLOW);
-				}
 				if (pres.contains(not)){
 					gc.setFill(Color.BLUE);
 				}
 				gc.fillRect(i*SQUARE_SIZE, j*SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE);
+				if (not.equals(this.moveStart) || not.equals(this.moveEnd)){
+					gc.setFill(Color.YELLOW);
+					gc.setGlobalAlpha(0.6);
+					gc.fillRect(i*SQUARE_SIZE, j*SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE);
+					gc.setGlobalAlpha(1.0);
+				}
 			}
 		}
 		
@@ -482,6 +494,15 @@ public class MainApplication extends Application{
 					}
 					gc.drawImage(piece.getImage(), pos.getX()*SQUARE_SIZE, pos.getY()*SQUARE_SIZE);
 				}
+				String text = "";
+				if (j == 7){
+					text += String.valueOf(Board.convertPosition(this.viewPoint == Color.BLACK ? 7-i : i, this.viewPoint == Color.BLACK ? 7-j : j).toCharArray()[0]);
+				}
+				if (i == 0){
+					text += String.valueOf(Board.convertPosition(this.viewPoint == Color.BLACK ? 7-i : i, this.viewPoint == Color.BLACK ? 7-j : j).toCharArray()[1]);
+				}
+				gc.setFill(Color.BLACK);
+				gc.fillText(text, i*SQUARE_SIZE+SQUARE_SIZE*0.1, (j+1)*SQUARE_SIZE-SQUARE_SIZE*0.1);
 			}
 		}
 		
@@ -498,7 +519,7 @@ public class MainApplication extends Application{
 		//gc.fillText(String.format("FPS: %d\n%s", fps, this.board.getBoardInfo()), 30, 230);
 		gc.restore();
 		
-		double wd = SPACE/2.0;
+		double wd = SPACE*0.6;
 		double bd = HEIGHT-SPACE*0.6;
 		
 		gc.setFill(Color.BLACK);
@@ -514,7 +535,7 @@ public class MainApplication extends Application{
 		for (int i = 0; i < black.size(); i++){
 			Piece piece = black.get(i);
 			Piece prev = i == 0 ? null : black.get(i-1);
-			gc.translate(prev != null && prev.getType().getValue() == piece.getType().getValue() ? SQUARE_SIZE/4.0 : SQUARE_SIZE/2.0+SQUARE_SIZE/10.0, 0);
+			if (i > 0) gc.translate(prev != null && prev.getType().getValue() == piece.getType().getValue() ? SQUARE_SIZE/4.0 : SQUARE_SIZE/2.0+SQUARE_SIZE/10.0, 0);
 			gc.drawImage(piece.getImage(), WIDTH*0.05, this.viewPoint == Color.WHITE ? wd : bd, SQUARE_SIZE/2.0, SQUARE_SIZE/2.0);
 		}
 		gc.restore();
@@ -522,7 +543,7 @@ public class MainApplication extends Application{
 		for (int i = 0; i < white.size(); i++){
 			Piece piece = white.get(i);
 			Piece prev = i == 0 ? null : white.get(i-1);
-			gc.translate(prev != null && prev.getType().getValue() == piece.getType().getValue() ? SQUARE_SIZE/4.0 : SQUARE_SIZE/2.0+SQUARE_SIZE/10.0, 0);
+			if (i > 0) gc.translate(prev != null && prev.getType().getValue() == piece.getType().getValue() ? SQUARE_SIZE/4.0 : SQUARE_SIZE/2.0+SQUARE_SIZE/10.0, 0);
 			gc.drawImage(piece.getImage(), WIDTH*0.05, this.viewPoint == Color.WHITE ? bd : wd, SQUARE_SIZE/2.0, SQUARE_SIZE/2.0);
 		}
 		gc.restore();
@@ -560,6 +581,30 @@ public class MainApplication extends Application{
 		
 		gc.fillText("Eval: "+this.eval, WIDTH*0.7, HEIGHT-SPACE*0.7);
 		
+		int count = 0;
+		for (int i = Math.max(this.board.getMoves().size()-7, 0); i < this.board.getMoves().size(); i++){
+			gc.setStroke(Color.BLACK);
+			gc.setFill(i % 2 == 0 ? Color.web("#F58B23") : Color.web("#7D4711"));
+			double w = WIDTH/7;
+			double h = SPACE*0.2;
+			double xp = 0+(count++)*w;
+			double yp = SPACE*0.15;
+			gc.fillRect(xp, yp, w, h);
+			gc.strokeRect(xp, yp, w, h);
+			gc.strokeText(this.board.getMoves().get(i), xp+w*0.1, yp+h*0.75);
+		}
+		
+		gc.setStroke(Color.BLACK);
+		double timeWidth = WIDTH*0.3;
+		double timeHeight = SPACE*0.25;
+		gc.strokeRect(WIDTH*0.65, this.viewPoint == Color.WHITE ? wd : bd, timeWidth, timeHeight);
+		gc.strokeRect(WIDTH*0.65, this.viewPoint == Color.WHITE ? bd : wd, timeWidth, timeHeight);
+		gc.setFill(Color.BLACK);
+		String topText = this.viewPoint == Color.WHITE ? formatTime(this.board.getTime(Color.BLACK)) : formatTime(this.board.getTime(Color.WHITE));
+		String bottomText = this.viewPoint == Color.WHITE ? formatTime(this.board.getTime(Color.WHITE)) : formatTime(this.board.getTime(Color.BLACK));
+		gc.fillText(topText, WIDTH*0.65+timeWidth*0.1, (this.viewPoint == Color.WHITE ? wd : bd)+timeHeight*0.75);
+		gc.fillText(bottomText, WIDTH*0.65+timeWidth*0.1, (this.viewPoint == Color.WHITE ? bd : wd)+timeHeight*0.75);
+		
 		if (this.gameFinished || Server.clients.size() == 1){
 			gc.save();
 			gc.setFill(Color.BLACK);
@@ -567,6 +612,25 @@ public class MainApplication extends Application{
 			gc.fillRect(0, 0, WIDTH, HEIGHT);
 			gc.restore();
 			if (this.gameFinished) this.client = null;
+		}
+		
+		this.board.tick();
+		
+		if (this.board.getTime(Color.WHITE) <= 0 || this.board.getTime(Color.BLACK) <= 0){
+			this.gameFinished = this.board.isGameFinished();
+		}
+	}
+	
+	private static String formatTime(int time){
+		int h = time / (60*60*1000);
+		int m = time % (60*60*1000) / (60*1000);
+		int s = ((time % (60*60*1000)) / 1000) % 60;
+		int ms = time % (60*60*1000) % 1000;
+		String text = "";
+		if (h > 0){
+			return String.format("%d:%d:%d.%d", h, m, s, ms);
+		} else {
+			return String.format("%d:%d.%d", m, s, ms);
 		}
 	}
 	

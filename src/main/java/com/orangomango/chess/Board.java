@@ -23,10 +23,30 @@ public class Board{
 	private Map<String, Integer> states = new HashMap<>();
 	private List<String> moves = new ArrayList<>();
 	public String playerA = System.getProperty("user.name"), playerB = "BLACK";
+	private long whiteTime, blackTime, lastTime;
 	
-	public Board(String fen){
+	public Board(String fen, long time){
 		this.board = new Piece[8][8];
 		setupBoard(fen);
+		this.whiteTime = time;
+		this.blackTime = time;
+		this.lastTime = System.currentTimeMillis();
+	}
+	
+	public void tick(){
+		if (this.movesN == 1){
+			this.lastTime = System.currentTimeMillis();
+			return;
+		}
+		long time = System.currentTimeMillis()-this.lastTime;
+		if (this.player == Color.WHITE){
+			if (this.whiteTime > 0) this.whiteTime -= time;
+			else this.whiteTime = 0;
+		} else {
+			if (this.blackTime > 0) this.blackTime -= time;
+			else this.blackTime = 0;
+		}
+		this.lastTime = System.currentTimeMillis();
 	}
 	
 	public void setupBoard(String fen){
@@ -140,6 +160,10 @@ public class Board{
 	
 	public int getMovesN(){
 		return this.movesN;
+	}
+	
+	public List<String> getMoves(){
+		return this.moves;
 	}
 	
 	public boolean move(String pos1, String pos){
@@ -306,6 +330,10 @@ public class Board{
 			output += "+";
 		}
 		return output;
+	}
+	
+	public int getTime(Color color){
+		return color == Color.WHITE ? (int)this.whiteTime : (int)this.blackTime;
 	}
 	
 	public void castleRight(Color color){
@@ -703,12 +731,12 @@ public class Board{
 		return builder.toString();
 	}
 	
-	public boolean isCheckMate(Color color){
+	private boolean isCheckMate(Color color){
 		Piece king = color == Color.WHITE ? this.whiteKing : this.blackKing;
 		return canBeCaptured(king) != null && !canKingMove(color);
 	}
 	
-	public boolean isDraw(){
+	private boolean isDraw(){
 		if (this.fifty >= 50) return true;
 		List<Piece> pieces = getPiecesOnBoard();
 		int whitePieces = pieces.stream().filter(piece -> piece.getColor() == Color.WHITE).mapToInt(p -> p.getType().getValue()).sum();
@@ -753,6 +781,10 @@ public class Board{
 	
 	public Color getPlayer(){
 		return this.player;
+	}
+	
+	public boolean isGameFinished(){
+		return isCheckMate(Color.WHITE) || isCheckMate(Color.BLACK) || isDraw() || this.whiteTime <= 0 || this.blackTime <= 0;
 	}
 	
 	@Override
