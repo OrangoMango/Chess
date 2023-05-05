@@ -14,7 +14,7 @@ Java 17+ required, `./gradlew :run`
 * Premoves
 
 # Screenshots
-![Screenshot from 2023-04-25 16-03-45](https://user-images.githubusercontent.com/61402409/234302478-85bab658-746d-4f33-9dbd-254f0cbc6696.png)
+![image](https://user-images.githubusercontent.com/61402409/236507038-099f9154-9668-4c95-9361-5d5b156c91c6.png)
 ![image](https://user-images.githubusercontent.com/61402409/234310007-e4e514eb-2837-442c-b9d7-db9cb75bd50d.png)
 ![Screenshot from 2023-04-25 16-05-41](https://user-images.githubusercontent.com/61402409/234302473-74633016-9f7b-476e-b104-803e29a8b10f.png)
 ![Screenshot from 2023-05-02 19-32-18](https://user-images.githubusercontent.com/61402409/235984400-e4388a1f-e218-45c8-bb29-7cf63d9be09b.png)
