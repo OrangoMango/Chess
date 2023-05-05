@@ -21,7 +21,6 @@ import javafx.scene.control.*;
 
 import java.io.*;
 import java.util.*;
-import java.text.SimpleDateFormat;
 
 import com.orangomango.chess.multiplayer.Server;
 import com.orangomango.chess.multiplayer.Client;
@@ -614,11 +613,7 @@ public class MainApplication extends Application{
 			if (this.gameFinished) this.client = null;
 		}
 		
-		this.board.tick();
-		
-		if (this.board.getTime(Color.WHITE) <= 0 || this.board.getTime(Color.BLACK) <= 0){
-			this.gameFinished = this.board.isGameFinished();
-		}
+		if (!this.gameFinished) this.board.tick();
 	}
 	
 	private static String formatTime(int time){
