@@ -1,5 +1,5 @@
 # Chess
-Chess GUI made in JavaFX. To change the game settings, click on the background.  
+Chess GUI made in JavaFX. To change the game settings, click twice on the background.  
 *Under development, this application is currently in beta*
 # Run
 Java 17+ required, `./gradlew :run`
