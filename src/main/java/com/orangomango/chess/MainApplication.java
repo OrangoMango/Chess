@@ -10,6 +10,7 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.Clipboard;
 import javafx.scene.paint.Color;
+import javafx.scene.image.Image;
 import javafx.scene.text.Font;
 import javafx.scene.layout.*;
 import javafx.animation.*;
@@ -377,6 +378,7 @@ public class MainApplication extends Application{
 		
 		stage.setResizable(false);
 		stage.setScene(new Scene(pane, WIDTH, HEIGHT));
+		stage.getIcons().add(new Image(MainApplication.class.getResourceAsStream("/icon.png")));
 		stage.show();
 	}
 	
