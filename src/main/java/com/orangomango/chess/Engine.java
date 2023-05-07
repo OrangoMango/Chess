@@ -10,7 +10,6 @@ public class Engine{
 	private OutputStreamWriter writer;
 	private BufferedReader reader;
 	private boolean running = true;
-	private volatile boolean thinking = false;
 	
 	public Engine(){
 		try {
@@ -63,7 +62,6 @@ public class Engine{
 		writeCommand(String.format("go wtime %s btime %s winc %s binc %s", b.getTime(Color.WHITE), b.getTime(Color.BLACK), b.getIncrementTime(), b.getIncrementTime()));
 		String output = "";
 		while (true) {
-			this.thinking = true;
 			try {
 				String line = this.reader.readLine();
 				if (line != null && line.contains("bestmove")){
@@ -74,14 +72,9 @@ public class Engine{
 				ex.printStackTrace();
 			}
 		}
-		this.thinking = false;
 		if (output.trim().equals("(none)")) return null;
 		char[] c = output.toCharArray();
 		return String.valueOf(c[0])+String.valueOf(c[1])+" "+String.valueOf(c[2])+String.valueOf(c[3]);
-	}
-	
-	public boolean isThinking(){
-		return this.thinking;
 	}
 	
 	public String getEval(String fen){

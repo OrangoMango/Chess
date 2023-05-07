@@ -276,12 +276,10 @@ public class MainApplication extends Application{
 					startEngine.setDisable((this.board.getMovesN() > 1 && !this.gameFinished) || !this.engine.isRunning());
 					startEngine.setOnAction(ev -> {
 						this.overTheBoard = true;
-						Logger.writeInfo("Engine thread started");
 						new Thread(() -> {
 							try {
 								Thread.sleep(2000);
 								makeEngineMove(true);
-								Logger.writeInfo("Engine thread finished");
 							} catch (InterruptedException ex){
 								Logger.writeError(ex.getMessage());
 							}
