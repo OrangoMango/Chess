@@ -14,7 +14,7 @@ Java 17+ required, `./gradlew :run`
 * Export game FEN and PGN
 * Arrows
 * Premoves
-* Time control (write <seconds>+<increment> in the text field and then click reset board)
+* Time control (write `<seconds>+<increment>` in the text field and then click reset board)
 
 # Screenshots
 ![image](https://user-images.githubusercontent.com/61402409/236507038-099f9154-9668-4c95-9361-5d5b156c91c6.png)
