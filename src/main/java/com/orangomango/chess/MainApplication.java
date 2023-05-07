@@ -37,7 +37,7 @@ public class MainApplication extends Application{
 	private Engine engine;
 	private String currentSelection;
 	private List<String> currentMoves;
-	private boolean gameFinished = false;
+	private volatile boolean gameFinished = false;
 	private volatile String eval;
 	private volatile PieceAnimation animation;
 	private Color viewPoint;
@@ -90,7 +90,7 @@ public class MainApplication extends Application{
 		GraphicsContext gc = canvas.getGraphicsContext2D();
 		pane.getChildren().add(canvas);
 		// startpos: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
-		this.board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 3*60*1000);
+		this.board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 180000, 0);
 		this.engine = new Engine();
 		
 		canvas.setOnMousePressed(e -> {
@@ -130,7 +130,7 @@ public class MainApplication extends Application{
 								this.hold.clear();
 								this.animation = null;
 								this.gameFinished = this.board.isGameFinished();
-								if (ok && this.engineMove) makeEngineMove();
+								if (ok && this.engineMove) makeEngineMove(false);
 							});
 							Piece piece = this.board.getBoard()[Board.convertNotation(this.currentSelection)[0]][Board.convertNotation(this.currentSelection)[1]];
 							if (this.board.getValidMoves(piece).contains(not)){
@@ -171,6 +171,8 @@ public class MainApplication extends Application{
 					sport.setMaxWidth(80);
 					cip.setMaxWidth(120);
 					cport.setMaxWidth(80);
+					TextField timeControl = new TextField();
+					timeControl.setPromptText("180+0");
 					ToggleGroup grp = new ToggleGroup();
 					RadioButton w = new RadioButton("White");
 					w.setOnAction(ev -> this.viewPoint = Color.WHITE);
@@ -178,48 +180,56 @@ public class MainApplication extends Application{
 					b.setOnAction(ev -> this.viewPoint = Color.BLACK);
 					Button startServer = new Button("Start server");
 					startServer.setOnAction(ev -> {
-						String ip = sip.getText().equals("") ? "192.168.1.247" : sip.getText();
-						int port = sport.getText().equals("") ? 1234 : Integer.parseInt(sport.getText());
-						Server server = new Server(ip, port);
-						alert.close();
+						try {
+							String ip = sip.getText().equals("") ? "192.168.1.247" : sip.getText();
+							int port = sport.getText().equals("") ? 1234 : Integer.parseInt(sport.getText());
+							Server server = new Server(ip, port);
+							alert.close();
+						} catch (NumberFormatException ex){
+							Logger.writeError(ex.getMessage());
+						}
 					});
 					TextArea data = new TextArea(this.board.getFEN()+"\n\n"+this.board.getPGN());
 					Button connect = new Button("Connect");
 					connect.setOnAction(ev -> {
-						String ip = cip.getText().equals("") ? "192.168.1.247" : cip.getText();
-						int port = cport.getText().equals("") ? 1234 : Integer.parseInt(cport.getText());
-						this.client = new Client(ip, port, this.viewPoint);
-						if (Server.clients.size() == 1){
-							reset(data.getText());
-						}
-						if (!this.client.isConnected()){
-							this.client = null;
-							return;
-						}
-						this.viewPoint = this.client.getColor();
-						Thread listener = new Thread(() -> {
-							while (!this.gameFinished){
-								String message = client.getMessage();
-								if (message == null){
-									System.exit(0);
-								} else {
-									this.animation = new PieceAnimation(message.split(" ")[0], message.split(" ")[1], () -> {
-										this.board.move(message.split(" ")[0], message.split(" ")[1]);
-										this.hold.clear();
-										this.moveStart = message.split(" ")[0];
-										this.moveEnd = message.split(" ")[1];
-										this.animation = null;
-										this.currentSelection = null;
-										this.gameFinished = this.board.isGameFinished();
-										makePremove();
-									});
-									this.animation.start();
-								}
+						try {
+							String ip = cip.getText().equals("") ? "192.168.1.247" : cip.getText();
+							int port = cport.getText().equals("") ? 1234 : Integer.parseInt(cport.getText());
+							this.client = new Client(ip, port, this.viewPoint);
+							if (Server.clients.size() == 1){
+								reset(data.getText(), this.board.getGameTime(), this.board.getIncrementTime());
 							}
-						});
-						listener.setDaemon(true);
-						listener.start();
-						alert.close();
+							if (!this.client.isConnected()){
+								this.client = null;
+								return;
+							}
+							this.viewPoint = this.client.getColor();
+							Thread listener = new Thread(() -> {
+								while (!this.gameFinished){
+									String message = client.getMessage();
+									if (message == null){
+										System.exit(0);
+									} else {
+										this.animation = new PieceAnimation(message.split(" ")[0], message.split(" ")[1], () -> {
+											this.board.move(message.split(" ")[0], message.split(" ")[1]);
+											this.hold.clear();
+											this.moveStart = message.split(" ")[0];
+											this.moveEnd = message.split(" ")[1];
+											this.animation = null;
+											this.currentSelection = null;
+											this.gameFinished = this.board.isGameFinished();
+											makePremove();
+										});
+										this.animation.start();
+									}
+								}
+							});
+							listener.setDaemon(true);
+							listener.start();
+							alert.close();
+						} catch (NumberFormatException ex){
+							Logger.writeError(ex.getMessage());
+						}
 					});
 					CheckBox otb = new CheckBox("Over the board");
 					CheckBox eng = new CheckBox("Play against stockfish");
@@ -230,7 +240,7 @@ public class MainApplication extends Application{
 						this.engineMove = eng.isSelected();
 						otb.setDisable(this.engineMove);
 						if (this.engineMove && this.board.getPlayer() != this.viewPoint){
-							makeEngineMove();
+							makeEngineMove(false);
 							this.board.playerA = "stockfish";
 							this.board.playerB = System.getProperty("user.name");
 						} else {
@@ -266,23 +276,28 @@ public class MainApplication extends Application{
 					startEngine.setDisable((this.board.getMovesN() > 1 && !this.gameFinished) || !this.engine.isRunning());
 					startEngine.setOnAction(ev -> {
 						this.overTheBoard = true;
+						Logger.writeInfo("Engine thread started");
 						new Thread(() -> {
 							try {
 								Thread.sleep(2000);
-								while (!this.gameFinished){
-									makeEngineMove();
-									Thread.sleep(2000);
-								}
+								makeEngineMove(true);
+								Logger.writeInfo("Engine thread finished");
 							} catch (InterruptedException ex){
-								ex.printStackTrace();
+								Logger.writeError(ex.getMessage());
 							}
 						}).start();
 						alert.close();
 					});
 					reset.setOnAction(ev -> {
-						String text = data.getText();
-						reset(text);
-						alert.close();
+						try {
+							String text = data.getText();
+							long time = timeControl.getText().equals("") ? 180000l : Long.parseLong(timeControl.getText().split("\\+")[0])*1000;
+							int inc = timeControl.getText().equals("") ? 0 : Integer.parseInt(timeControl.getText().split("\\+")[1]);
+							reset(text, time, inc);
+							alert.close();
+						} catch (Exception ex){
+							Logger.writeError(ex.getMessage());
+						}
 					});
 					HBox serverInfo = new HBox(5, sip, sport, startServer);
 					HBox clientInfo = new HBox(5, cip, cport, connect);
@@ -291,17 +306,19 @@ public class MainApplication extends Application{
 					serverInfo.setDisable(this.board.getMovesN() > 1 && !this.gameFinished);
 					clientInfo.setDisable(this.board.getMovesN() > 1 && !this.gameFinished);
 					whiteBlack.setDisable(this.board.getMovesN() > 1 && !this.gameFinished);
+					timeControl.setDisable(this.board.getMovesN() > 1 && !this.gameFinished);
 					rs.setDisable(this.board.getMovesN() > 1 && !this.gameFinished);
 					eng.setDisable((this.board.getMovesN() > 1 && !this.gameFinished) || !this.engine.isRunning());
 					otb.setDisable((this.board.getMovesN() > 1 && !this.gameFinished) || this.client != null);
 					layout.add(serverInfo, 0, 0);
 					layout.add(clientInfo, 0, 1);
-					layout.add(eng, 0, 2);
-					layout.add(otb, 0, 3);
-					layout.add(whiteBlack, 0, 4);
-					layout.add(rs, 0, 5);
-					layout.add(copy, 0, 6);
-					layout.add(data, 0, 7);
+					layout.add(timeControl, 0, 2);
+					layout.add(eng, 0, 3);
+					layout.add(otb, 0, 4);
+					layout.add(whiteBlack, 0, 5);
+					layout.add(rs, 0, 6);
+					layout.add(copy, 0, 7);
+					layout.add(data, 0, 8);
 					alert.getDialogPane().setContent(layout);
 					alert.showAndWait();
 				}
@@ -313,7 +330,7 @@ public class MainApplication extends Application{
 				}
 			} else if (e.getButton() == MouseButton.MIDDLE){
 				if (this.gameFinished || (this.board.getPlayer() != this.viewPoint && !this.overTheBoard)) return;
-				makeEngineMove();
+				makeEngineMove(false);
 			}
 			
 		});
@@ -376,12 +393,12 @@ public class MainApplication extends Application{
 		return Board.convertPosition(x, y);
 	}
 	
-	private void reset(String text){
+	private void reset(String text, long time, int inc){
 		String fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 		if (text.startsWith("CUSTOM\n") && (this.board.getMovesN() == 1 || this.gameFinished)){
 			fen = text.split("\n")[1];
 		}
-		this.board = new Board(fen, 3*60*1000);
+		this.board = new Board(fen, time, inc);
 		this.gameFinished = false;
 		this.moveStart = null;
 		this.moveEnd = null;
@@ -390,10 +407,10 @@ public class MainApplication extends Application{
 		this.currentHold = null;
 	}
 	
-	private void makeEngineMove(){
+	private void makeEngineMove(boolean game){
 		if (this.gameFinished) return;
 		new Thread(() -> {
-			String output = this.engine.getBestMove(board.getFEN(), 700);
+			String output = this.engine.getBestMove(this.board);
 			if (output != null){
 				this.animation = new PieceAnimation(output.split(" ")[0], output.split(" ")[1], () -> {
 					this.board.move(output.split(" ")[0], output.split(" ")[1]);
@@ -405,6 +422,7 @@ public class MainApplication extends Application{
 					this.animation = null;
 					this.gameFinished = this.board.isGameFinished();
 					makePremove();
+					if (game) makeEngineMove(true);
 				});
 				this.animation.start();
 			}
@@ -434,7 +452,7 @@ public class MainApplication extends Application{
 				this.moveStart = pre.startPos;
 				this.moveEnd = pre.endPos;
 				this.gameFinished = this.board.isGameFinished();
-				if (this.engineMove) makeEngineMove();
+				if (this.engineMove) makeEngineMove(false);
 			} else {
 				this.premoves.clear();
 			}
@@ -513,9 +531,6 @@ public class MainApplication extends Application{
 			}
 		}
 		
-		//gc.setFill(Color.RED);
-		//gc.setFont(new Font("Sans-serif", 15));
-		//gc.fillText(String.format("FPS: %d\n%s", fps, this.board.getBoardInfo()), 30, 230);
 		gc.restore();
 		
 		double wd = SPACE*0.6;
@@ -645,27 +660,5 @@ public class MainApplication extends Application{
 		}
 		
 		launch(args);
-		
-		/*Board board = new Board();
-		System.out.println(board);
-		
-		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-		String line;
-		do {
-			System.out.print("Move: ");
-			line = reader.readLine();
-			if (!line.equals("")){
-				board.move(line.split(" ")[0], line.split(" ")[1]);
-				System.out.println("---");
-				System.out.println(board);
-			}
-		} while (!line.equals(""));
-		reader.close();*/
-		
-		//Engine engine = new Engine();
-		//engine.writeCommand("d");
-		//System.out.println(engine.getBestMove(board.getFEN(), 100));
-		
-		//System.exit(0);
 	}
 }

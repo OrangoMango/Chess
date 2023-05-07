@@ -23,11 +23,14 @@ public class Board{
 	private Map<String, Integer> states = new HashMap<>();
 	private List<String> moves = new ArrayList<>();
 	public String playerA = System.getProperty("user.name"), playerB = "BLACK";
-	private long whiteTime, blackTime, lastTime;
+	private long whiteTime, blackTime, lastTime, gameTime;
+	private int increment;
 	
-	public Board(String fen, long time){
+	public Board(String fen, long time, int increment){
 		this.board = new Piece[8][8];
 		setupBoard(fen);
+		this.gameTime = time;
+		this.increment = increment;
 		this.whiteTime = time;
 		this.blackTime = time;
 		this.lastTime = System.currentTimeMillis();
@@ -40,13 +43,21 @@ public class Board{
 		}
 		long time = System.currentTimeMillis()-this.lastTime;
 		if (this.player == Color.WHITE){
-			if (this.whiteTime > 0) this.whiteTime -= time;
-			else this.whiteTime = 0;
+			this.whiteTime -= time;
 		} else {
-			if (this.blackTime > 0) this.blackTime -= time;
-			else this.blackTime = 0;
+			this.blackTime -= time;
 		}
+		this.whiteTime = Math.max(this.whiteTime, 0);
+		this.blackTime = Math.max(this.blackTime, 0);
 		this.lastTime = System.currentTimeMillis();
+	}
+	
+	public long getGameTime(){
+		return this.gameTime;
+	}
+	
+	public int getIncrementTime(){
+		return this.increment;
 	}
 	
 	public void setupBoard(String fen){
@@ -276,6 +287,14 @@ public class Board{
 			
 			if (check){
 				MainApplication.playSound(MainApplication.CHECK_SOUND);
+			}
+			
+			if (this.movesN > 1){
+				if (this.player == Color.WHITE){
+					this.whiteTime += this.increment*1000;
+				} else {
+					this.blackTime += this.increment*1000;
+				}
 			}
 
 			if (this.player == Color.BLACK) this.movesN++;

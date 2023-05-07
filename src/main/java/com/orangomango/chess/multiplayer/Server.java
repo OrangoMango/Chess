@@ -4,6 +4,8 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
+import com.orangomango.chess.Logger;
+
 public class Server{
 	private String ip;
 	private int port;
@@ -19,7 +21,7 @@ public class Server{
 			close();
 		}
 		listen();
-		System.out.println("Server started");
+		Logger.writeInfo("Server started");
 	}
 	
 	private void listen(){

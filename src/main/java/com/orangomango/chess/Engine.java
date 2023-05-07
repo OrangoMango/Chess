@@ -2,12 +2,15 @@ package com.orangomango.chess;
 
 import java.io.*;
 
+import javafx.scene.paint.Color;
+
 public class Engine{
 	private static final String COMMAND = "stockfish";
 	
 	private OutputStreamWriter writer;
 	private BufferedReader reader;
 	private boolean running = true;
+	private volatile boolean thinking = false;
 	
 	public Engine(){
 		try {
@@ -17,6 +20,7 @@ public class Engine{
 			getOutput(20);
 		} catch (IOException ex){
 			ex.printStackTrace();
+			Logger.writeError(ex.getMessage());
 			this.running = false;
 		}
 	}
@@ -54,13 +58,30 @@ public class Engine{
 		return builder.toString();
 	}
 	
-	public String getBestMove(String fen, int moveTime){
-		writeCommand("position fen "+fen);
-		writeCommand("go movetime "+moveTime);
-		String output = getOutput(moveTime+150).split("bestmove ")[1].split(" ")[0];
+	public String getBestMove(Board b){
+		writeCommand("position fen "+b.getFEN());
+		writeCommand(String.format("go wtime %s btime %s winc %s binc %s", b.getTime(Color.WHITE), b.getTime(Color.BLACK), b.getIncrementTime(), b.getIncrementTime()));
+		String output = "";
+		while (true) {
+			this.thinking = true;
+			try {
+				String line = this.reader.readLine();
+				if (line != null && line.contains("bestmove")){
+					output = line.split("bestmove ")[1].split(" ")[0];
+					break;
+				}
+			} catch (IOException ex){
+				ex.printStackTrace();
+			}
+		}
+		this.thinking = false;
 		if (output.trim().equals("(none)")) return null;
 		char[] c = output.toCharArray();
 		return String.valueOf(c[0])+String.valueOf(c[1])+" "+String.valueOf(c[2])+String.valueOf(c[3]);
+	}
+	
+	public boolean isThinking(){
+		return this.thinking;
 	}
 	
 	public String getEval(String fen){
