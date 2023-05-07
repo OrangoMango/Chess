@@ -611,13 +611,13 @@ public class MainApplication extends Application{
 		gc.setStroke(Color.BLACK);
 		double timeWidth = WIDTH*0.3;
 		double timeHeight = SPACE*0.25;
-		gc.strokeRect(WIDTH*0.65, this.viewPoint == Color.WHITE ? wd : bd, timeWidth, timeHeight);
-		gc.strokeRect(WIDTH*0.65, this.viewPoint == Color.WHITE ? bd : wd, timeWidth, timeHeight);
+		gc.strokeRect(WIDTH*0.65, wd, timeWidth, timeHeight);
+		gc.strokeRect(WIDTH*0.65, bd, timeWidth, timeHeight);
 		gc.setFill(Color.BLACK);
 		String topText = this.viewPoint == Color.WHITE ? formatTime(this.board.getTime(Color.BLACK)) : formatTime(this.board.getTime(Color.WHITE));
 		String bottomText = this.viewPoint == Color.WHITE ? formatTime(this.board.getTime(Color.WHITE)) : formatTime(this.board.getTime(Color.BLACK));
-		gc.fillText(topText, WIDTH*0.65+timeWidth*0.1, (this.viewPoint == Color.WHITE ? wd : bd)+timeHeight*0.75);
-		gc.fillText(bottomText, WIDTH*0.65+timeWidth*0.1, (this.viewPoint == Color.WHITE ? bd : wd)+timeHeight*0.75);
+		gc.fillText(topText, WIDTH*0.65+timeWidth*0.1, wd+timeHeight*0.75);
+		gc.fillText(bottomText, WIDTH*0.65+timeWidth*0.1, bd+timeHeight*0.75);
 		
 		if (this.gameFinished || Server.clients.size() == 1){
 			gc.save();
