@@ -62,7 +62,7 @@ jlinkZip {
     group = 'distribution'
 }
 
-/*jar {
+jar {
         from {
                  duplicatesStrategy = DuplicatesStrategy.EXCLUDE
                  configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
@@ -71,4 +71,4 @@ jlinkZip {
                  exclude "META-INF/*.DSA"
                  exclude "META-INF/*.RSA"
         }
-}*/
+}
