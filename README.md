@@ -3,6 +3,8 @@ Chess GUI made in JavaFX. To change the game settings, click twice on the backgr
 *Under development, this application is currently in beta*
 # Itch
 https://orangomango.itch.io/chess
+# Stockfish
+Install stockfish and add it as an environment variable or place the executable (the filename must start with `stockfish` in order to be found by the application) in the `.omchess` folder loacated in your home directory.
 # Run
 Java 17+ required, `./gradlew :run`
 ## Features
