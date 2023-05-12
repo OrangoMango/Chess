@@ -11,7 +11,6 @@ import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.Clipboard;
 import javafx.scene.paint.Color;
 import javafx.scene.image.Image;
-import javafx.scene.text.Font;
 import javafx.scene.layout.*;
 import javafx.animation.*;
 import javafx.geometry.Point2D;
@@ -53,10 +52,7 @@ public class MainApplication extends Application{
 	private Client client;
 	private static Color startColor = Color.WHITE;
 	
-	public static final Media MOVE_SOUND = new Media(MainApplication.class.getResource("/move.mp3").toExternalForm());
-	public static final Media CAPTURE_SOUND = new Media(MainApplication.class.getResource("/capture.mp3").toExternalForm());
-	public static final Media CASTLE_SOUND = new Media(MainApplication.class.getResource("/castle.mp3").toExternalForm());
-	public static final Media CHECK_SOUND = new Media(MainApplication.class.getResource("/notify.mp3").toExternalForm());
+	public static Media MOVE_SOUND, CAPTURE_SOUND, CASTLE_SOUND, CHECK_SOUND;
 	
 	private static class Premove{
 		public String startPos, endPos;
@@ -84,6 +80,7 @@ public class MainApplication extends Application{
 		counter.start();
 		
 		this.viewPoint = startColor;
+		loadSounds();
 
 		stage.setTitle("Chess");
 		StackPane pane = new StackPane();
@@ -605,7 +602,8 @@ public class MainApplication extends Application{
 			double yp = SPACE*0.15;
 			gc.fillRect(xp, yp, w, h);
 			gc.strokeRect(xp, yp, w, h);
-			gc.strokeText(this.board.getMoves().get(i), xp+w*0.1, yp+h*0.75);
+			gc.setFill(Color.BLACK);
+			gc.fillText(this.board.getMoves().get(i), xp+w*0.1, yp+h*0.75);
 		}
 		
 		gc.setStroke(Color.BLACK);
@@ -642,6 +640,13 @@ public class MainApplication extends Application{
 		} else {
 			return String.format("%d:%d.%d", m, s, ms);
 		}
+	}
+
+	private static void loadSounds(){
+		MOVE_SOUND = new Media(MainApplication.class.getResource("/move.mp3").toExternalForm());
+		CAPTURE_SOUND = new Media(MainApplication.class.getResource("/capture.mp3").toExternalForm());
+		CASTLE_SOUND = new Media(MainApplication.class.getResource("/castle.mp3").toExternalForm());
+		CHECK_SOUND = new Media(MainApplication.class.getResource("/notify.mp3").toExternalForm());
 	}
 	
 	public static void playSound(Media media){

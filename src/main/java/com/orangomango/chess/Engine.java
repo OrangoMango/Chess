@@ -5,11 +5,24 @@ import java.io.*;
 import javafx.scene.paint.Color;
 
 public class Engine{
-	private static final String COMMAND = "stockfish";
+	private static String COMMAND = "stockfish";
 	
 	private OutputStreamWriter writer;
 	private BufferedReader reader;
 	private boolean running = true;
+
+	static {
+		File dir = new File(System.getProperty("user.home"), ".omchess");
+		String found = null;
+		for (File file : dir.listFiles()){
+			// Custom stockfish file
+			if (file.getName().startsWith("stockfish")){
+				found = file.getAbsolutePath();
+				break;
+			}
+		}
+		if (found != null) COMMAND = found;
+	}
 	
 	public Engine(){
 		try {
@@ -80,7 +93,8 @@ public class Engine{
 	public String getEval(String fen){
 		writeCommand("position fen "+fen);
 		writeCommand("eval");
-		String output = getOutput(50).split("Final evaluation: ")[1].split("\\(")[0].trim();
+		String output = getOutput(50).split("Final evaluation")[1].split("\\(")[0].trim();
+		if (output.startsWith(":")) output = output.substring(1).trim();
 		return output;
 	}
 }

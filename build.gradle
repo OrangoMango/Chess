@@ -25,7 +25,7 @@ tasks.withType(JavaCompile) {
 
 application {
     mainModule = 'com.orangomango.chess'
-    mainClass = 'com.orangomango.chess.MainApplication'
+    mainClass = 'com.orangomango.chess.Launcher'
 }
 
 run {
