@@ -14,11 +14,13 @@ public class Engine{
 	static {
 		File dir = new File(System.getProperty("user.home"), ".omchess");
 		String found = null;
-		for (File file : dir.listFiles()){
-			// Custom stockfish file
-			if (file.getName().startsWith("stockfish")){
-				found = file.getAbsolutePath();
-				break;
+		if (dir.exists()){
+			for (File file : dir.listFiles()){
+				// Custom stockfish file
+				if (file.getName().startsWith("stockfish")){
+					found = file.getAbsolutePath();
+					break;
+				}
 			}
 		}
 		if (found != null) COMMAND = found;
