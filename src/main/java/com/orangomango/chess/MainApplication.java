@@ -55,11 +55,12 @@ public class MainApplication extends Application{
 	public static Media MOVE_SOUND, CAPTURE_SOUND, CASTLE_SOUND, CHECK_SOUND;
 	
 	private static class Premove{
-		public String startPos, endPos;
+		public String startPos, endPos, prom;
 		
-		public Premove(String s, String e){
+		public Premove(String s, String e, String prom){
 			this.startPos = s;
 			this.endPos = e;
+			this.prom = prom;
 		}
 	}
 	
@@ -112,15 +113,19 @@ public class MainApplication extends Application{
 								this.currentSelection = not;
 							}
 						} else {
-							this.premoves.add(new Premove(this.currentSelection, not));
+							boolean isProm = isPromotion(this.currentSelection, not);
+							String prom = isProm ? "Q" : null;
+							this.premoves.add(new Premove(this.currentSelection, not, prom));
 							this.currentSelection = null;
 						}
 					} else {
 						boolean showMoves = false;
 						if (this.currentSelection != null){
+							boolean isProm = isPromotion(this.currentSelection, not);
+							String prom = isProm ? "Q" : null;
 							this.animation = new PieceAnimation(this.currentSelection, not, () -> {
-								boolean ok = this.board.move(this.currentSelection, not);
-								if (this.client != null) this.client.sendMessage(this.currentSelection+" "+not);
+								boolean ok = this.board.move(this.currentSelection, not, prom);
+								if (this.client != null) this.client.sendMessage(this.currentSelection+" "+not+(prom == null ? "" : " "+prom));
 								this.moveStart = this.currentSelection;
 								this.moveEnd = not;
 								this.currentSelection = null;
@@ -204,12 +209,13 @@ public class MainApplication extends Application{
 							this.viewPoint = this.client.getColor();
 							Thread listener = new Thread(() -> {
 								while (!this.gameFinished){
-									String message = client.getMessage();
+									String message = this.client.getMessage();
 									if (message == null){
 										System.exit(0);
 									} else {
 										this.animation = new PieceAnimation(message.split(" ")[0], message.split(" ")[1], () -> {
-											this.board.move(message.split(" ")[0], message.split(" ")[1]);
+											String prom = message.split(" ").length == 3 ? message.split(" ")[2] : null;
+											this.board.move(message.split(" ")[0], message.split(" ")[1], prom);
 											this.hold.clear();
 											this.moveStart = message.split(" ")[0];
 											this.moveEnd = message.split(" ")[1];
@@ -378,6 +384,21 @@ public class MainApplication extends Application{
 		stage.getIcons().add(new Image(MainApplication.class.getResourceAsStream("/icon.png")));
 		stage.show();
 	}
+
+	private boolean isPromotion(String a, String b){
+		Piece piece = this.board.getBoard()[Board.convertNotation(a)[0]][Board.convertNotation(a)[1]];
+		if (piece.getType().getName() == Piece.PIECE_PAWN){
+			if (piece.getColor() == Color.WHITE && Board.convertNotation(b)[1] == 0){
+				return true;
+			} else if (piece.getColor() == Color.BLACK && Board.convertNotation(b)[1] == 7){
+				return true;
+			} else {
+				return false;
+			}
+		} else {
+			return false;
+		}
+	}
 	
 	private String getNotation(MouseEvent e){
 		if (e.getY() < SPACE) return null;
@@ -402,6 +423,7 @@ public class MainApplication extends Application{
 		this.hold.clear();
 		this.premoves.clear();
 		this.currentHold = null;
+		this.currentMoves = null;
 	}
 	
 	private void makeEngineMove(boolean game){
@@ -410,7 +432,8 @@ public class MainApplication extends Application{
 			String output = this.engine.getBestMove(this.board);
 			if (output != null){
 				this.animation = new PieceAnimation(output.split(" ")[0], output.split(" ")[1], () -> {
-					this.board.move(output.split(" ")[0], output.split(" ")[1]);
+					String prom = output.split(" ").length == 3 ? output.split(" ")[2] : null;
+					this.board.move(output.split(" ")[0], output.split(" ")[1], prom);
 					if (this.client != null) this.client.sendMessage(output.split(" ")[0]+" "+output.split(" ")[1]);
 					this.hold.clear();
 					this.currentSelection = null;
@@ -442,9 +465,9 @@ public class MainApplication extends Application{
 		}
 		Premove pre = this.premoves.remove(0);
 		this.animation = new PieceAnimation(pre.startPos, pre.endPos, () -> {
-			boolean ok = this.board.move(pre.startPos, pre.endPos);
+			boolean ok = this.board.move(pre.startPos, pre.endPos, pre.prom);
 			if (ok){
-				if (this.client != null) this.client.sendMessage(pre.startPos+" "+pre.endPos);
+				if (this.client != null) this.client.sendMessage(pre.startPos+" "+pre.endPos+(pre.prom == null ? "" : " "+pre.prom));
 				this.hold.clear();
 				this.moveStart = pre.startPos;
 				this.moveEnd = pre.endPos;

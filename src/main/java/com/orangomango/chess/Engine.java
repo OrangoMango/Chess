@@ -89,7 +89,7 @@ public class Engine{
 		}
 		if (output.trim().equals("(none)")) return null;
 		char[] c = output.toCharArray();
-		return String.valueOf(c[0])+String.valueOf(c[1])+" "+String.valueOf(c[2])+String.valueOf(c[3]);
+		return String.valueOf(c[0])+String.valueOf(c[1])+" "+String.valueOf(c[2])+String.valueOf(c[3])+(c.length == 5 ? " "+String.valueOf(c[4]) : "");
 	}
 	
 	public String getEval(String fen){
