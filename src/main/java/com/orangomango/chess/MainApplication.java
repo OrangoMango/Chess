@@ -413,7 +413,7 @@ public class MainApplication extends Application{
 	
 	private void reset(String text, long time, int inc){
 		String fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-		if (text.startsWith("CUSTOM\n") && (this.board.getMovesN() == 1 || this.gameFinished)){
+		if (text.startsWith("CUSTOM\n")){
 			fen = text.split("\n")[1];
 		}
 		this.board = new Board(fen, time, inc);
