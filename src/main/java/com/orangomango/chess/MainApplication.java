@@ -51,6 +51,7 @@ public class MainApplication extends Application{
 	private List<Premove> premoves = new ArrayList<>();
 	private Piece draggingPiece;
 	private double dragX, dragY;
+	private Image promotionImage;
 	
 	private Client client;
 	private static Color startColor = Color.WHITE;
@@ -324,12 +325,23 @@ public class MainApplication extends Application{
 				if (this.draggingPiece != null){
 					this.dragX = e.getX();
 					this.dragY = e.getY();
+					if (this.draggingPiece.getType().getName() == Piece.PIECE_PAWN){
+						int y = (int) ((e.getY()-SPACE)/SQUARE_SIZE);
+						if (this.viewPoint == Color.BLACK) y = 7-y;
+						Piece prom = new Piece(Piece.Pieces.QUEEN, this.draggingPiece.getColor(), -1, -1);
+						if (this.draggingPiece.getColor() == Color.WHITE && y == 0){
+							this.promotionImage = prom.getImage();
+						} else if (this.draggingPiece.getColor() == Color.BLACK && y == 7){
+							this.promotionImage = prom.getImage();
+						}
+					}
 				}
 			}
 		});
 		
 		canvas.setOnMouseReleased(e -> {
 			String h = getNotation(e);
+			this.promotionImage = null;
 			if (e.getButton() == MouseButton.PRIMARY){
 				String not = getNotation(e);
 				int x = (int)(e.getX()/SQUARE_SIZE);
@@ -415,6 +427,7 @@ public class MainApplication extends Application{
 			this.currentSelection = null;
 			this.currentMoves = null;
 			this.animation = null;
+			this.draggingPiece = null;
 			if (this.board.getBoard()[x][y] != null) return true;
 		}
 		return false;
@@ -587,7 +600,7 @@ public class MainApplication extends Application{
 		}
 		
 		if (this.draggingPiece != null){
-			gc.drawImage(this.draggingPiece.getImage(), this.dragX-SQUARE_SIZE/2.0, this.dragY-SPACE-SQUARE_SIZE/2.0, SQUARE_SIZE, SQUARE_SIZE);
+			gc.drawImage(this.promotionImage == null ? this.draggingPiece.getImage() : this.promotionImage, this.dragX-SQUARE_SIZE/2.0, this.dragY-SPACE-SQUARE_SIZE/2.0, SQUARE_SIZE, SQUARE_SIZE);
 		}
 		
 		gc.restore();
