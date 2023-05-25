@@ -23,7 +23,8 @@ public class Board{
 	private Map<String, Integer> states = new HashMap<>();
 	private List<String> moves = new ArrayList<>();
 	public String playerA = System.getProperty("user.name"), playerB = "BLACK";
-	private long whiteTime, blackTime, lastTime, gameTime;
+	private volatile long whiteTime, blackTime;
+	private long lastTime, gameTime;
 	private int increment;
 	
 	public Board(String fen, long time, int increment){
@@ -714,9 +715,9 @@ public class Board{
 		if (isDraw()){
 			result = "½-½";
 		} else if (isCheckMate(Color.WHITE)){
-			result = "1-0";
-		} else if (isCheckMate(Color.BLACK)){
 			result = "0-1";
+		} else if (isCheckMate(Color.BLACK)){
+			result = "1-0";
 		}
 		builder.append("[Result \""+result+"\"]\n\n");
 		for (int i = 0; i < this.moves.size(); i++){

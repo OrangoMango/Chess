@@ -32,6 +32,7 @@ public class MainApplication extends Application{
 	private static final double HEIGHT = SPACE*2+SQUARE_SIZE*8;
 	private volatile int frames, fps;
 	private static final int FPS = 40;
+	private static final String STARTPOS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 	
 	private Board board;
 	private Engine engine;
@@ -41,13 +42,15 @@ public class MainApplication extends Application{
 	private volatile String eval;
 	private volatile PieceAnimation animation;
 	private Color viewPoint;
-	private boolean overTheBoard = false;
+	private boolean overTheBoard = true;
 	private boolean engineMove = false;
 	
 	private Map<String, List<String>> hold = new HashMap<>();
 	private String currentHold;
 	private String moveStart, moveEnd;
 	private List<Premove> premoves = new ArrayList<>();
+	private Piece draggingPiece;
+	private double dragX, dragY;
 	
 	private Client client;
 	private static Color startColor = Color.WHITE;
@@ -88,8 +91,7 @@ public class MainApplication extends Application{
 		Canvas canvas = new Canvas(WIDTH, HEIGHT);
 		GraphicsContext gc = canvas.getGraphicsContext2D();
 		pane.getChildren().add(canvas);
-		// startpos: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
-		this.board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 180000, 0);
+		this.board = new Board(STARTPOS, 180000, 0);
 		this.engine = new Engine();
 		
 		canvas.setOnMousePressed(e -> {
@@ -121,35 +123,16 @@ public class MainApplication extends Application{
 					} else {
 						boolean showMoves = false;
 						if (this.currentSelection != null){
-							boolean isProm = isPromotion(this.currentSelection, not);
-							String prom = isProm ? "Q" : null;
-							this.animation = new PieceAnimation(this.currentSelection, not, () -> {
-								boolean ok = this.board.move(this.currentSelection, not, prom);
-								if (this.client != null) this.client.sendMessage(this.currentSelection+" "+not+(prom == null ? "" : " "+prom));
-								this.moveStart = this.currentSelection;
-								this.moveEnd = not;
-								this.currentSelection = null;
-								this.currentMoves = null;
-								this.hold.clear();
-								this.animation = null;
-								this.gameFinished = this.board.isGameFinished();
-								if (ok && this.engineMove) makeEngineMove(false);
-							});
-							Piece piece = this.board.getBoard()[Board.convertNotation(this.currentSelection)[0]][Board.convertNotation(this.currentSelection)[1]];
-							if (this.board.getValidMoves(piece).contains(not)){
-								this.animation.start();
-							} else {
-								this.currentSelection = null;
-								this.currentMoves = null;
-								this.animation = null;
-								if (this.board.getBoard()[x][y] != null) showMoves = true;
-							}
+							showMoves = makeUserMove(not, x, y, false);
 						} else if (this.board.getBoard()[x][y] != null){
 							showMoves = true;
 						}
 						if (showMoves){
 							this.currentSelection = not;
 							this.currentMoves = this.board.getValidMoves(this.board.getBoard()[x][y]);
+							this.draggingPiece = this.board.getBoard()[x][y];
+							this.dragX = e.getX();
+							this.dragY = e.getY();
 						}
 					}
 				} else if (e.getClickCount() == 2){
@@ -334,19 +317,42 @@ public class MainApplication extends Application{
 				if (this.gameFinished || (this.board.getPlayer() != this.viewPoint && !this.overTheBoard)) return;
 				makeEngineMove(false);
 			}
-			
+		});
+		
+		canvas.setOnMouseDragged(e -> {
+			if (e.getButton() == MouseButton.PRIMARY){
+				if (this.draggingPiece != null){
+					this.dragX = e.getX();
+					this.dragY = e.getY();
+				}
+			}
 		});
 		
 		canvas.setOnMouseReleased(e -> {
 			String h = getNotation(e);
-			if (h != null){
-				String f = this.currentHold;
-				this.currentHold = null;
-				if (f != null){
-					if (f.equals(h)){
-						this.hold.clear();
-					} else {
-						this.hold.get(f).add(h);
+			if (e.getButton() == MouseButton.PRIMARY){
+				String not = getNotation(e);
+				int x = (int)(e.getX()/SQUARE_SIZE);
+				int y = (int)((e.getY()-SPACE)/SQUARE_SIZE);
+				if (this.viewPoint == Color.BLACK){
+					x = 7-x;
+					y = 7-y;
+				}
+				if (this.currentSelection != null && not != null && this.draggingPiece != null && !this.currentSelection.equals(not)){
+					makeUserMove(not, x, y, true);
+				} else {
+					this.draggingPiece = null;
+				}
+			} else if (e.getButton() == MouseButton.SECONDARY){
+				if (h != null){
+					String f = this.currentHold;
+					this.currentHold = null;
+					if (f != null){
+						if (f.equals(h)){
+							this.hold.clear();
+						} else {
+							this.hold.get(f).add(h);
+						}
 					}
 				}
 			}
@@ -384,6 +390,35 @@ public class MainApplication extends Application{
 		stage.getIcons().add(new Image(MainApplication.class.getResourceAsStream("/icon.png")));
 		stage.show();
 	}
+	
+	private boolean makeUserMove(String not, int x, int y, boolean skipAnimation){
+		boolean isProm = isPromotion(this.currentSelection, not);
+		String prom = isProm ? "Q" : null;
+		this.animation = new PieceAnimation(this.currentSelection, not, () -> {
+			boolean ok = this.board.move(this.currentSelection, not, prom);
+			if (this.client != null) this.client.sendMessage(this.currentSelection+" "+not+(prom == null ? "" : " "+prom));
+			this.moveStart = this.currentSelection;
+			this.moveEnd = not;
+			this.currentSelection = null;
+			this.currentMoves = null;
+			this.hold.clear();
+			this.animation = null;
+			this.gameFinished = this.board.isGameFinished();
+			if (ok && this.engineMove) makeEngineMove(false);
+		});
+		if (skipAnimation) this.animation.setAnimationTime(0);
+		Piece piece = this.board.getBoard()[Board.convertNotation(this.currentSelection)[0]][Board.convertNotation(this.currentSelection)[1]];
+		if (this.board.getValidMoves(piece).contains(not)){
+			this.animation.start();
+			this.draggingPiece = null;
+		} else {
+			this.currentSelection = null;
+			this.currentMoves = null;
+			this.animation = null;
+			if (this.board.getBoard()[x][y] != null) return true;
+		}
+		return false;
+	}
 
 	private boolean isPromotion(String a, String b){
 		Piece piece = this.board.getBoard()[Board.convertNotation(a)[0]][Board.convertNotation(a)[1]];
@@ -412,7 +447,7 @@ public class MainApplication extends Application{
 	}
 	
 	private void reset(String text, long time, int inc){
-		String fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+		String fen = STARTPOS;
 		if (text.startsWith("CUSTOM\n")){
 			fen = text.split("\n")[1];
 		}
@@ -529,7 +564,7 @@ public class MainApplication extends Application{
 							gc.fillOval(pos.getX()*SQUARE_SIZE, pos.getY()*SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE);
 						}
 					}
-					gc.drawImage(piece.getImage(), pos.getX()*SQUARE_SIZE, pos.getY()*SQUARE_SIZE);
+					if (piece != this.draggingPiece) gc.drawImage(piece.getImage(), pos.getX()*SQUARE_SIZE, pos.getY()*SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE);
 				}
 				String text = "";
 				if (j == 7){
@@ -549,6 +584,10 @@ public class MainApplication extends Application{
 				gc.setFill(this.board.getBoard()[pos[0]][pos[1]] == null ? Color.YELLOW : Color.BLUE);
 				gc.fillOval((this.viewPoint == Color.BLACK ? 7-pos[0] : pos[0])*SQUARE_SIZE+SQUARE_SIZE/3.0, (this.viewPoint == Color.BLACK ? 7-pos[1] : pos[1])*SQUARE_SIZE+SQUARE_SIZE/3.0, SQUARE_SIZE/3.0, SQUARE_SIZE/3.0);
 			}
+		}
+		
+		if (this.draggingPiece != null){
+			gc.drawImage(this.draggingPiece.getImage(), this.dragX-SQUARE_SIZE/2.0, this.dragY-SPACE-SQUARE_SIZE/2.0, SQUARE_SIZE, SQUARE_SIZE);
 		}
 		
 		gc.restore();

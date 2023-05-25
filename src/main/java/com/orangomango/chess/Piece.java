@@ -62,7 +62,7 @@ public class Piece{
 		this.color = color;
 		this.x = x;
 		this.y = y;
-		this.image = new Image("/"+type.name().toLowerCase()+"_"+(color == Color.WHITE ? "white" : "black")+".png", MainApplication.SQUARE_SIZE, MainApplication.SQUARE_SIZE, true, true);
+		this.image = new Image("/"+type.name().toLowerCase()+"_"+(color == Color.WHITE ? "white" : "black")+".png");
 	}
 	
 	public void setPos(int x, int y){

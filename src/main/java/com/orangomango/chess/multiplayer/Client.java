@@ -23,7 +23,7 @@ public class Client{
 			this.writer = new BufferedWriter(new OutputStreamWriter(this.socket.getOutputStream()));
 			this.reader = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
 			sendMessage(color == Color.WHITE ? "WHITE" : "BLACK");
-			String response  = getMessage();
+			String response = getMessage();
 			if (response != null){
 				if (response.equals("FULL")){
 					Logger.writeInfo("Server is full");
