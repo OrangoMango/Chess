@@ -329,9 +329,9 @@ public class MainApplication extends Application{
 						int y = (int) ((e.getY()-SPACE)/SQUARE_SIZE);
 						if (this.viewPoint == Color.BLACK) y = 7-y;
 						Piece prom = new Piece(Piece.Pieces.QUEEN, this.draggingPiece.getColor(), -1, -1);
-						if (this.draggingPiece.getColor() == Color.WHITE && y == 0){
+						if (this.draggingPiece.getColor() == Color.WHITE && y == 0 && this.draggingPiece.getY() == 1){
 							this.promotionImage = prom.getImage();
-						} else if (this.draggingPiece.getColor() == Color.BLACK && y == 7){
+						} else if (this.draggingPiece.getColor() == Color.BLACK && y == 7 && this.draggingPiece.getY() == 6){
 							this.promotionImage = prom.getImage();
 						}
 					}
@@ -343,15 +343,14 @@ public class MainApplication extends Application{
 			String h = getNotation(e);
 			this.promotionImage = null;
 			if (e.getButton() == MouseButton.PRIMARY){
-				String not = getNotation(e);
 				int x = (int)(e.getX()/SQUARE_SIZE);
 				int y = (int)((e.getY()-SPACE)/SQUARE_SIZE);
 				if (this.viewPoint == Color.BLACK){
 					x = 7-x;
 					y = 7-y;
 				}
-				if (this.currentSelection != null && not != null && this.draggingPiece != null && !this.currentSelection.equals(not)){
-					makeUserMove(not, x, y, true);
+				if (this.currentSelection != null && h != null && this.draggingPiece != null && !this.currentSelection.equals(h)){
+					makeUserMove(h, x, y, true);
 				} else {
 					this.draggingPiece = null;
 				}
