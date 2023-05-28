@@ -191,6 +191,7 @@ public class MainApplication extends Application{
 								return;
 							}
 							this.viewPoint = this.client.getColor();
+							this.overTheBoard = false;
 							Thread listener = new Thread(() -> {
 								while (!this.gameFinished){
 									String message = this.client.getMessage();
