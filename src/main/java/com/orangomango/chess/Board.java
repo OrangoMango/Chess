@@ -61,7 +61,7 @@ public class Board{
 		return this.increment;
 	}
 	
-	public void setupBoard(String fen){
+	private void setupBoard(String fen){
 		String[] data = fen.split(" ");
 		this.whiteKing = null;
 		this.blackKing = null;

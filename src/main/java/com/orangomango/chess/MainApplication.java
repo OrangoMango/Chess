@@ -264,14 +264,16 @@ public class MainApplication extends Application{
 					startEngine.setDisable((this.board.getMovesN() > 1 && !this.gameFinished) || !this.engine.isRunning());
 					startEngine.setOnAction(ev -> {
 						this.overTheBoard = true;
-						new Thread(() -> {
+						Thread eg = new Thread(() -> {
 							try {
 								Thread.sleep(2000);
 								makeEngineMove(true);
 							} catch (InterruptedException ex){
 								Logger.writeError(ex.getMessage());
 							}
-						}).start();
+						});
+						eg.setDaemon(true);
+						eg.start();
 						alert.close();
 					});
 					reset.setOnAction(ev -> {
@@ -683,17 +685,17 @@ public class MainApplication extends Application{
 		gc.fillText("Eval: "+this.eval, WIDTH*0.7, HEIGHT-SPACE*0.7);
 		
 		int count = 0;
-		for (int i = Math.max(this.board.getMoves().size()-7, 0); i < this.board.getMoves().size(); i++){
+		for (int i = Math.max(this.board.getMoves().size()-6, 0); i < this.board.getMoves().size(); i++){
 			gc.setStroke(Color.BLACK);
 			gc.setFill(i % 2 == 0 ? Color.web("#F58B23") : Color.web("#7D4711"));
-			double w = WIDTH/7;
+			double w = WIDTH/6;
 			double h = SPACE*0.2;
 			double xp = 0+(count++)*w;
 			double yp = SPACE*0.15;
 			gc.fillRect(xp, yp, w, h);
 			gc.strokeRect(xp, yp, w, h);
 			gc.setFill(Color.BLACK);
-			gc.fillText(this.board.getMoves().get(i), xp+w*0.1, yp+h*0.75);
+			gc.fillText((i/2+1)+"."+this.board.getMoves().get(i), xp+w*0.1, yp+h*0.75);
 		}
 		
 		gc.setStroke(Color.BLACK);
