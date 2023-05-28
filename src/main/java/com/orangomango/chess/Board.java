@@ -246,18 +246,18 @@ public class Board{
 					this.blackLeftCastleAllowed = false;
 				}
 			}
-			
+
 			if (piece.getType().getName() == Piece.PIECE_ROOK){
 				if (piece.getColor() == Color.WHITE){
-					if (this.whiteRightCastleAllowed && piece.getX() == 7){
+					if (this.whiteRightCastleAllowed && p1[0] == 7){
 						this.whiteRightCastleAllowed = false;
-					} else if (this.whiteLeftCastleAllowed && piece.getX() == 0){
+					} else if (this.whiteLeftCastleAllowed && p1[0] == 0){
 						this.whiteLeftCastleAllowed = false;
 					}
 				} else {
-					if (this.blackRightCastleAllowed && piece.getX() == 7){
+					if (this.blackRightCastleAllowed && p1[0] == 7){
 						this.blackRightCastleAllowed = false;
-					} else if (this.blackLeftCastleAllowed && piece.getX() == 0){
+					} else if (this.blackLeftCastleAllowed && p1[0] == 0){
 						this.blackLeftCastleAllowed = false;
 					}
 				}
@@ -341,7 +341,7 @@ public class Board{
 			} else {
 				output = pos;
 			}
-			if (prom != null) output += "="+prom;
+			if (prom != null) output += "="+prom.toUpperCase();
 		} else if (castle){
 			output = piece.getX() == 2 ? "O-O-O" : "O-O";
 		} else {

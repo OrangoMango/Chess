@@ -51,7 +51,7 @@ public class MainApplication extends Application{
 	private List<Premove> premoves = new ArrayList<>();
 	private Piece draggingPiece;
 	private double dragX, dragY;
-	private Image promotionImage;
+	private Piece promotionPiece;
 	
 	private Client client;
 	private static Color startColor = Color.WHITE;
@@ -124,7 +124,7 @@ public class MainApplication extends Application{
 					} else {
 						boolean showMoves = false;
 						if (this.currentSelection != null){
-							showMoves = makeUserMove(not, x, y, false);
+							showMoves = makeUserMove(not, x, y, false, "Q");
 						} else if (this.board.getBoard()[x][y] != null){
 							showMoves = true;
 						}
@@ -324,15 +324,31 @@ public class MainApplication extends Application{
 			if (e.getButton() == MouseButton.PRIMARY){
 				if (this.draggingPiece != null){
 					this.dragX = e.getX();
+					double oldY = this.dragY;
 					this.dragY = e.getY();
-					if (this.draggingPiece.getType().getName() == Piece.PIECE_PAWN){
-						int y = (int) ((e.getY()-SPACE)/SQUARE_SIZE);
-						if (this.viewPoint == Color.BLACK) y = 7-y;
-						Piece prom = new Piece(Piece.Pieces.QUEEN, this.draggingPiece.getColor(), -1, -1);
-						if (this.draggingPiece.getColor() == Color.WHITE && y == 0 && this.draggingPiece.getY() == 1){
-							this.promotionImage = prom.getImage();
-						} else if (this.draggingPiece.getColor() == Color.BLACK && y == 7 && this.draggingPiece.getY() == 6){
-							this.promotionImage = prom.getImage();
+					if (this.promotionPiece == null){
+						if (this.draggingPiece.getType().getName() == Piece.PIECE_PAWN){
+							int y = (int) ((e.getY()-SPACE)/SQUARE_SIZE);
+							if (this.viewPoint == Color.BLACK) y = 7-y;
+							Piece prom = new Piece(Piece.Pieces.QUEEN, this.draggingPiece.getColor(), -1, -1);
+							if (this.draggingPiece.getColor() == Color.WHITE && y == 0 && this.draggingPiece.getY() == 1){
+								this.promotionPiece = prom;
+							} else if (this.draggingPiece.getColor() == Color.BLACK && y == 7 && this.draggingPiece.getY() == 6){
+								this.promotionPiece = prom;
+							}
+						}
+					} else if ((e.getY() > oldY && this.draggingPiece.getColor() == Color.WHITE) || (e.getY() < oldY && this.draggingPiece.getColor() == Color.BLACK)){
+						double y = this.draggingPiece.getColor() == Color.WHITE ? 0 : 8;
+						y *= SQUARE_SIZE;
+						y += SPACE;
+						String[] proms = new String[]{"Q", "R", "B", "N"};
+						int difference = (int)Math.round(e.getY()-y);
+						difference /= SQUARE_SIZE;
+						if ((difference < 0 && this.draggingPiece.getColor() == Color.WHITE) || (difference > 0 && this.draggingPiece.getColor() == Color.BLACK)){
+							return;
+						} else {
+							difference = Math.abs(difference);
+							this.promotionPiece = new Piece(Piece.getType(proms[difference % 4]), this.draggingPiece.getColor(), -1, -1);;
 						}
 					}
 				}
@@ -341,7 +357,6 @@ public class MainApplication extends Application{
 		
 		canvas.setOnMouseReleased(e -> {
 			String h = getNotation(e);
-			this.promotionImage = null;
 			if (e.getButton() == MouseButton.PRIMARY){
 				int x = (int)(e.getX()/SQUARE_SIZE);
 				int y = (int)((e.getY()-SPACE)/SQUARE_SIZE);
@@ -350,7 +365,7 @@ public class MainApplication extends Application{
 					y = 7-y;
 				}
 				if (this.currentSelection != null && h != null && this.draggingPiece != null && !this.currentSelection.equals(h)){
-					makeUserMove(h, x, y, true);
+					makeUserMove(h, x, y, true, this.promotionPiece == null ? null : this.promotionPiece.getType().getName());
 				} else {
 					this.draggingPiece = null;
 				}
@@ -367,6 +382,7 @@ public class MainApplication extends Application{
 					}
 				}
 			}
+			this.promotionPiece = null;
 		});
 		
 		Timeline loop = new Timeline(new KeyFrame(Duration.millis(1000.0/FPS), e -> update(gc)));
@@ -402,9 +418,9 @@ public class MainApplication extends Application{
 		stage.show();
 	}
 	
-	private boolean makeUserMove(String not, int x, int y, boolean skipAnimation){
+	private boolean makeUserMove(String not, int x, int y, boolean skipAnimation, String promType){
 		boolean isProm = isPromotion(this.currentSelection, not);
-		String prom = isProm ? "Q" : null;
+		String prom = isProm ? promType : null;
 		this.animation = new PieceAnimation(this.currentSelection, not, () -> {
 			boolean ok = this.board.move(this.currentSelection, not, prom);
 			if (this.client != null) this.client.sendMessage(this.currentSelection+" "+not+(prom == null ? "" : " "+prom));
@@ -599,7 +615,7 @@ public class MainApplication extends Application{
 		}
 		
 		if (this.draggingPiece != null){
-			gc.drawImage(this.promotionImage == null ? this.draggingPiece.getImage() : this.promotionImage, this.dragX-SQUARE_SIZE/2.0, this.dragY-SPACE-SQUARE_SIZE/2.0, SQUARE_SIZE, SQUARE_SIZE);
+			gc.drawImage(this.promotionPiece == null ? this.draggingPiece.getImage() : this.promotionPiece.getImage(), this.dragX-SQUARE_SIZE/2.0, this.dragY-SPACE-SQUARE_SIZE/2.0, SQUARE_SIZE, SQUARE_SIZE);
 		}
 		
 		gc.restore();
