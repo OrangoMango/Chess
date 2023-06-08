@@ -1,6 +1,5 @@
 # Chess
-Chess GUI made in JavaFX. To change the game settings, click twice on the background.  
-*Under development, this application is currently in beta*
+Chess GUI made in JavaFX. To change the game settings, click twice on the background.
 # Itch
 https://orangomango.itch.io/chess
 # Stockfish
@@ -17,6 +16,7 @@ Java 17+ required, `./gradlew :run`
 * Arrows
 * Premoves
 * Time control (write `<seconds>+<increment>` in the text field and then click reset board)
+* Drag and drop
 
 # Screenshots
 ![image](https://user-images.githubusercontent.com/61402409/236507038-099f9154-9668-4c95-9361-5d5b156c91c6.png)
