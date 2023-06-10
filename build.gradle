@@ -1,63 +1,28 @@
-plugins {
-    id 'java'
-    id 'application'
-    id 'org.openjfx.javafxplugin' version '0.0.13'
-    id 'org.beryx.jlink' version '2.25.0'
+buildscript {
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'org.javafxports:jfxmobile-plugin:1.3.17'
+    }
 }
 
-group 'com.orangomango'
-version '1.3'
+apply plugin: 'org.javafxports.jfxmobile'
+
+mainClassName = 'com.orangomango.chess.MainApplication'
 
 repositories {
-    mavenCentral()
+    jcenter()
 }
 
-ext {
-    junitVersion = '5.8.2'
-}
-
-sourceCompatibility = '17'
-targetCompatibility = '17'
-
-tasks.withType(JavaCompile) {
-    options.encoding = 'UTF-8'
-}
-
-application {
-    mainModule = 'com.orangomango.chess'
-    mainClass = 'com.orangomango.chess.Launcher'
-}
-
-run {
-	standardInput = System.In
-}
-
-javafx {
-    version = '17.0.2'
-    modules = ['javafx.controls', 'javafx.media']
-    String path = System.getenv("JAVAFX_PATH")
-    if (path != null && !path.isBlank()){
-        sdk = path
+jfxmobile {
+    ios {
+        forceLinkClasses = ['ensemble.**.*']
     }
-}
-
-dependencies {
-    testImplementation("org.junit.jupiter:junit-jupiter-api:${junitVersion}")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${junitVersion}")
-}
-
-test {
-    useJUnitPlatform()
-}
-
-jlink {
-    imageZip = project.file("${buildDir}/distributions/app-${javafx.platform.classifier}.zip")
-    options = ['--strip-debug', '--compress', '2', '--no-header-files', '--no-man-pages']
-    launcher {
-        name = 'app'
+    android {
+        manifest = 'src/AndroidManifest.xml'
+        androidSdk = '/home/codespace/Android/Sdk'
+        buildToolsVersion "27.0.0"
     }
-}
-
-jlinkZip {
-    group = 'distribution'
 }
