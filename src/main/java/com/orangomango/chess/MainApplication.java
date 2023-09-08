@@ -25,11 +25,16 @@ import java.util.*;
 import com.orangomango.chess.multiplayer.Server;
 import com.orangomango.chess.multiplayer.Client;
 
+/**
+ * Chess client made in Java/JavaFX
+ * @version 2.0
+ * @author OrangoMango [https://orangomango.github.io]
+ */
 public class MainApplication extends Application{
-	public static final int SQUARE_SIZE = 55;
-	private static final int SPACE = 130;
-	private static final double WIDTH = SQUARE_SIZE*8;
-	private static final double HEIGHT = SPACE*2+SQUARE_SIZE*8;
+	private static final int SQUARE_SIZE = 55;
+	private static final double WIDTH = 1000;
+	private static final double HEIGHT = 800;
+	private static final Point2D SPACE = new Point2D(90, (HEIGHT-SQUARE_SIZE*8)/2);
 	private volatile int frames, fps;
 	private static final int FPS = 40;
 	private static final String STARTPOS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -56,7 +61,7 @@ public class MainApplication extends Application{
 	private Client client;
 	private static Color startColor = Color.WHITE;
 	
-	public static Media MOVE_SOUND, CAPTURE_SOUND, CASTLE_SOUND, CHECK_SOUND;
+	public static Media MOVE_SOUND, CAPTURE_SOUND, CASTLE_SOUND, CHECK_SOUND, ILLEGAL_SOUND, PROMOTE_SOUND;
 	
 	private static class Premove{
 		public String startPos, endPos, prom;
@@ -87,7 +92,7 @@ public class MainApplication extends Application{
 		this.viewPoint = startColor;
 		loadSounds();
 
-		stage.setTitle("Chess");
+		stage.setTitle("Chess v2.0");
 		StackPane pane = new StackPane();
 		Canvas canvas = new Canvas(WIDTH, HEIGHT);
 		GraphicsContext gc = canvas.getGraphicsContext2D();
@@ -99,8 +104,9 @@ public class MainApplication extends Application{
 			if (Server.clients.size() == 1) return;
 			if (e.getButton() == MouseButton.PRIMARY){
 				String not = getNotation(e);
-				int x = (int)(e.getX()/SQUARE_SIZE);
-				int y = (int)((e.getY()-SPACE)/SQUARE_SIZE);
+				Point2D clickPoint = getClickPoint(e.getX(), e.getY());
+				int x = (int)(clickPoint.getX()/SQUARE_SIZE);
+				int y = (int)(clickPoint.getY()/SQUARE_SIZE);
 				if (this.viewPoint == Color.BLACK){
 					x = 7-x;
 					y = 7-y;
@@ -331,7 +337,7 @@ public class MainApplication extends Application{
 					this.dragY = e.getY();
 					if (this.promotionPiece == null){
 						if (this.draggingPiece.getType().getName() == Piece.PIECE_PAWN){
-							int y = (int) ((e.getY()-SPACE)/SQUARE_SIZE);
+							int y = (int) (getClickPoint(e.getX(), e.getY()).getY()/SQUARE_SIZE);
 							if (this.viewPoint == Color.BLACK) y = 7-y;
 							Piece prom = new Piece(Piece.Pieces.QUEEN, this.draggingPiece.getColor(), -1, -1);
 							if (this.draggingPiece.getColor() == Color.WHITE && y == 0 && this.draggingPiece.getY() == 1){
@@ -343,7 +349,7 @@ public class MainApplication extends Application{
 					} else if ((e.getY() > oldY && this.draggingPiece.getColor() == Color.WHITE) || (e.getY() < oldY && this.draggingPiece.getColor() == Color.BLACK)){
 						double y = this.draggingPiece.getColor() == Color.WHITE ? 0 : 8;
 						y *= SQUARE_SIZE;
-						y += SPACE;
+						y += SPACE.getY();
 						String[] proms = new String[]{"Q", "R", "B", "N"};
 						int difference = (int)Math.round(e.getY()-y);
 						difference /= SQUARE_SIZE;
@@ -361,8 +367,9 @@ public class MainApplication extends Application{
 		canvas.setOnMouseReleased(e -> {
 			String h = getNotation(e);
 			if (e.getButton() == MouseButton.PRIMARY){
-				int x = (int)(e.getX()/SQUARE_SIZE);
-				int y = (int)((e.getY()-SPACE)/SQUARE_SIZE);
+				Point2D clickPoint = getClickPoint(e.getX(), e.getY());
+				int x = (int)(clickPoint.getX()/SQUARE_SIZE);
+				int y = (int)(clickPoint.getY()/SQUARE_SIZE);
 				if (this.viewPoint == Color.BLACK){
 					x = 7-x;
 					y = 7-y;
@@ -420,6 +427,10 @@ public class MainApplication extends Application{
 		stage.getIcons().add(new Image(MainApplication.class.getResourceAsStream("/icon.png")));
 		stage.show();
 	}
+
+	private Point2D getClickPoint(double x, double y){
+		return new Point2D(x-SPACE.getX(), y-SPACE.getY());
+	}
 	
 	private boolean makeUserMove(String not, int x, int y, boolean skipAnimation, String promType){
 		boolean isProm = isPromotion(this.currentSelection, not);
@@ -442,6 +453,7 @@ public class MainApplication extends Application{
 			this.animation.start();
 			this.draggingPiece = null;
 		} else {
+			MainApplication.playSound(MainApplication.ILLEGAL_SOUND);
 			this.currentSelection = null;
 			this.currentMoves = null;
 			this.animation = null;
@@ -467,9 +479,10 @@ public class MainApplication extends Application{
 	}
 	
 	private String getNotation(MouseEvent e){
-		if (e.getY() < SPACE) return null;
-		int x = (int)(e.getX()/SQUARE_SIZE);
-		int y = (int)((e.getY()-SPACE)/SQUARE_SIZE);
+		if (e.getX() < SPACE.getX() || e.getY() < SPACE.getY()) return null;
+		Point2D clickPoint = getClickPoint(e.getX(), e.getY());
+		int x = (int)(clickPoint.getX()/SQUARE_SIZE);
+		int y = (int)(clickPoint.getY()/SQUARE_SIZE);
 		if (this.viewPoint == Color.BLACK){
 			x = 7-x;
 			y = 7-y;
@@ -552,9 +565,11 @@ public class MainApplication extends Application{
 		gc.setFill(Color.CYAN);
 		gc.fillRect(0, 0, WIDTH, HEIGHT);
 		gc.save();
-		gc.translate(0, SPACE);
+		gc.translate(SPACE.getX(), SPACE.getY());
 		Piece[][] pieces = this.board.getBoard();
 		List<String> pres = getPremoves();
+
+		// Grid
 		for (int i = 0; i < 8; i++){
 			for (int j = 0; j < 8; j++){
 				gc.setFill((i+7*j) % 2 == 0 ? Color.WHITE : Color.GREEN);
@@ -578,6 +593,7 @@ public class MainApplication extends Application{
 			}
 		}
 		
+		// Pieces
 		for (int i = 0; i < 8; i++){
 			for (int j = 0; j < 8; j++){
 				Piece piece = pieces[i][j];
@@ -618,14 +634,15 @@ public class MainApplication extends Application{
 		}
 		
 		if (this.draggingPiece != null){
-			gc.drawImage(this.promotionPiece == null ? this.draggingPiece.getImage() : this.promotionPiece.getImage(), this.dragX-SQUARE_SIZE/2.0, this.dragY-SPACE-SQUARE_SIZE/2.0, SQUARE_SIZE, SQUARE_SIZE);
+			gc.drawImage(this.promotionPiece == null ? this.draggingPiece.getImage() : this.promotionPiece.getImage(), this.dragX-SPACE.getX()-SQUARE_SIZE/2.0, this.dragY-SPACE.getY()-SQUARE_SIZE/2.0, SQUARE_SIZE, SQUARE_SIZE);
 		}
 		
 		gc.restore();
 		
-		double wd = SPACE*0.6;
-		double bd = HEIGHT-SPACE*0.6;
+		double wd = 130;
+		double bd = HEIGHT-130;
 		
+		// Captured difference
 		gc.setFill(Color.BLACK);
 		int bm = this.board.getMaterial(Color.BLACK);
 		int wm = this.board.getMaterial(Color.WHITE);
@@ -633,6 +650,7 @@ public class MainApplication extends Application{
 		if (diff < 0) gc.fillText(Integer.toString(-diff), WIDTH*0.05, this.viewPoint == Color.WHITE ? wd : bd);
 		if (diff > 0) gc.fillText(Integer.toString(diff), WIDTH*0.05, this.viewPoint == Color.WHITE ? bd : wd);
 		
+		// Captured pieces
 		List<Piece> black = this.board.getMaterialList(Color.BLACK);
 		List<Piece> white = this.board.getMaterialList(Color.WHITE);
 		gc.save();
@@ -652,6 +670,7 @@ public class MainApplication extends Application{
 		}
 		gc.restore();
 
+		// Arrows
 		for (Map.Entry<String, List<String>> entry : this.hold.entrySet()){
 			if (entry.getKey() == null || entry.getValue() == null) continue;
 			for (String value : entry.getValue()){
@@ -666,16 +685,16 @@ public class MainApplication extends Application{
 				
 				// Knight
 				if (Math.abs(h2[0]-h1[0])*Math.abs(h2[1]-h1[1]) == 2){
-					gc.strokeLine(h1[0]*SQUARE_SIZE+SQUARE_SIZE/2.0, h1[1]*SQUARE_SIZE+SPACE+SQUARE_SIZE/2.0, h1[0]*SQUARE_SIZE+SQUARE_SIZE/2.0, h2[1]*SQUARE_SIZE+SPACE+SQUARE_SIZE/2.0);
-					gc.strokeLine(h1[0]*SQUARE_SIZE+SQUARE_SIZE/2.0, h2[1]*SQUARE_SIZE+SPACE+SQUARE_SIZE/2.0, h2[0]*SQUARE_SIZE+SQUARE_SIZE/2.0, h2[1]*SQUARE_SIZE+SPACE+SQUARE_SIZE/2.0);
+					gc.strokeLine(h1[0]*SQUARE_SIZE+SPACE.getX()+SQUARE_SIZE/2.0, h1[1]*SQUARE_SIZE+SPACE.getY()+SQUARE_SIZE/2.0, h1[0]*SQUARE_SIZE+SPACE.getX()+SQUARE_SIZE/2.0, h2[1]*SQUARE_SIZE+SPACE.getY()+SQUARE_SIZE/2.0);
+					gc.strokeLine(h1[0]*SQUARE_SIZE+SPACE.getX()+SQUARE_SIZE/2.0, h2[1]*SQUARE_SIZE+SPACE.getY()+SQUARE_SIZE/2.0, h2[0]*SQUARE_SIZE+SPACE.getX()+SQUARE_SIZE/2.0, h2[1]*SQUARE_SIZE+SPACE.getY()+SQUARE_SIZE/2.0);
 					rad = Math.atan2(0, h2[0]-h1[0]);
 				} else {
-					gc.strokeLine(h1[0]*SQUARE_SIZE+SQUARE_SIZE/2.0, h1[1]*SQUARE_SIZE+SPACE+SQUARE_SIZE/2.0, h2[0]*SQUARE_SIZE+SQUARE_SIZE/2.0, h2[1]*SQUARE_SIZE+SPACE+SQUARE_SIZE/2.0);
+					gc.strokeLine(h1[0]*SQUARE_SIZE+SPACE.getX()+SQUARE_SIZE/2.0, h1[1]*SQUARE_SIZE+SPACE.getY()+SQUARE_SIZE/2.0, h2[0]*SQUARE_SIZE+SPACE.getX()+SQUARE_SIZE/2.0, h2[1]*SQUARE_SIZE+SPACE.getY()+SQUARE_SIZE/2.0);
 					rad = Math.atan2(h2[1]-h1[1], h2[0]-h1[0]);
 				}
 				
 				gc.setFill(Color.ORANGE);
-				gc.translate(h2[0]*SQUARE_SIZE+SQUARE_SIZE*0.5, h2[1]*SQUARE_SIZE+SPACE+SQUARE_SIZE*0.5);
+				gc.translate(h2[0]*SQUARE_SIZE+SPACE.getX()+SQUARE_SIZE*0.5, h2[1]*SQUARE_SIZE+SPACE.getY()+SQUARE_SIZE*0.5);
 				gc.rotate(Math.toDegrees(rad));
 				gc.fillPolygon(new double[]{-SQUARE_SIZE*0.3, -SQUARE_SIZE*0.3, SQUARE_SIZE*0.3}, new double[]{-SQUARE_SIZE*0.3, SQUARE_SIZE*0.3, 0}, 3);
 				
@@ -683,23 +702,25 @@ public class MainApplication extends Application{
 			}
 		}
 		
-		gc.fillText("Eval: "+this.eval, WIDTH*0.7, HEIGHT-SPACE*0.7);
+		//gc.fillText("Eval: "+this.eval, WIDTH*0.7, HEIGHT-SPACE*0.7);
 		
+		// Moves played
 		int count = 0;
-		for (int i = Math.max(this.board.getMoves().size()-6, 0); i < this.board.getMoves().size(); i++){
+		for (int i = Math.max(this.board.getMoves().size()-12, 0); i < this.board.getMoves().size(); i++){
 			gc.setStroke(Color.BLACK);
 			gc.setFill(i % 2 == 0 ? Color.web("#F58B23") : Color.web("#7D4711"));
-			double w = WIDTH/6;
-			double h = SPACE*0.2;
-			double xp = 0+(count++)*w;
-			double yp = SPACE*0.15;
+			double w = 75;
+			double h = 25;
+			double xp = 10+(count++)*w;
+			double yp = 30;
 			gc.fillRect(xp, yp, w, h);
 			gc.strokeRect(xp, yp, w, h);
 			gc.setFill(Color.BLACK);
 			gc.fillText((i/2+1)+"."+this.board.getMoves().get(i), xp+w*0.1, yp+h*0.75);
 		}
 		
-		gc.setStroke(Color.BLACK);
+		// Time remaining
+		/*gc.setStroke(Color.BLACK);
 		double timeWidth = WIDTH*0.3;
 		double timeHeight = SPACE*0.25;
 		gc.strokeRect(WIDTH*0.65, wd, timeWidth, timeHeight);
@@ -708,7 +729,7 @@ public class MainApplication extends Application{
 		String topText = this.viewPoint == Color.WHITE ? formatTime(this.board.getTime(Color.BLACK)) : formatTime(this.board.getTime(Color.WHITE));
 		String bottomText = this.viewPoint == Color.WHITE ? formatTime(this.board.getTime(Color.WHITE)) : formatTime(this.board.getTime(Color.BLACK));
 		gc.fillText(topText, WIDTH*0.65+timeWidth*0.1, wd+timeHeight*0.75);
-		gc.fillText(bottomText, WIDTH*0.65+timeWidth*0.1, bd+timeHeight*0.75);
+		gc.fillText(bottomText, WIDTH*0.65+timeWidth*0.1, bd+timeHeight*0.75);*/
 		
 		if (this.gameFinished || Server.clients.size() == 1){
 			gc.save();
@@ -739,7 +760,9 @@ public class MainApplication extends Application{
 		MOVE_SOUND = new Media(MainApplication.class.getResource("/move.mp3").toExternalForm());
 		CAPTURE_SOUND = new Media(MainApplication.class.getResource("/capture.mp3").toExternalForm());
 		CASTLE_SOUND = new Media(MainApplication.class.getResource("/castle.mp3").toExternalForm());
-		CHECK_SOUND = new Media(MainApplication.class.getResource("/notify.mp3").toExternalForm());
+		CHECK_SOUND = new Media(MainApplication.class.getResource("/move-check.mp3").toExternalForm());
+		ILLEGAL_SOUND = new Media(MainApplication.class.getResource("/illegal.mp3").toExternalForm());
+		PROMOTE_SOUND = new Media(MainApplication.class.getResource("/promote.mp3").toExternalForm());
 	}
 	
 	public static void playSound(Media media){

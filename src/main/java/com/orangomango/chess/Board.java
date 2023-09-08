@@ -300,10 +300,6 @@ public class Board{
 				}
 			}
 			
-			if (check){
-				MainApplication.playSound(MainApplication.CHECK_SOUND);
-			}
-			
 			if (this.movesN > 1){
 				if (this.player == Color.WHITE){
 					this.whiteTime += this.increment*1000;
@@ -319,13 +315,19 @@ public class Board{
 			this.states.put(fen, this.states.getOrDefault(fen, 0)+1);
 			
 			this.moves.add(moveToString(piece, pos1, pos, check, capture != null, prom, castle, identical));
-			
-			if (capture != null){
-				MainApplication.playSound(MainApplication.CAPTURE_SOUND);
-			} else if (castle){
-				MainApplication.playSound(MainApplication.CASTLE_SOUND);
+
+			if (check){
+				MainApplication.playSound(MainApplication.CHECK_SOUND);
 			} else {
-				MainApplication.playSound(MainApplication.MOVE_SOUND);
+				if (prom != null){
+					MainApplication.playSound(MainApplication.PROMOTE_SOUND);
+				} else if (capture != null){
+					MainApplication.playSound(MainApplication.CAPTURE_SOUND);
+				} else if (castle){
+					MainApplication.playSound(MainApplication.CASTLE_SOUND);
+				} else {
+					MainApplication.playSound(MainApplication.MOVE_SOUND);
+				}
 			}
 			return true;
 		}
