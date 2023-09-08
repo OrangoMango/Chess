@@ -22,6 +22,7 @@ import javafx.scene.control.*;
 import java.io.*;
 import java.util.*;
 
+import com.orangomango.chess.multiplayer.HttpServer;
 import com.orangomango.chess.multiplayer.Server;
 import com.orangomango.chess.multiplayer.Client;
 
@@ -60,6 +61,7 @@ public class MainApplication extends Application{
 	
 	private Client client;
 	private static Color startColor = Color.WHITE;
+	private HttpServer httpServer;
 	
 	public static Media MOVE_SOUND, CAPTURE_SOUND, CASTLE_SOUND, CHECK_SOUND, ILLEGAL_SOUND, PROMOTE_SOUND;
 	
@@ -99,6 +101,22 @@ public class MainApplication extends Application{
 		pane.getChildren().add(canvas);
 		this.board = new Board(STARTPOS, 180000, 0);
 		this.engine = new Engine();
+
+		this.httpServer = new HttpServer("http://127.0.0.1/paul_home/Chess-server/index.php");
+		this.httpServer.setOnRequest((p1, p2, prom) -> {
+			this.animation = new PieceAnimation(p1, p2, () -> {
+				this.board.move(p1, p2, prom);
+				this.hold.clear();
+				this.moveStart = p1;
+				this.moveEnd = p2;
+				this.animation = null;
+				this.currentSelection = null;
+				this.gameFinished = this.board.isGameFinished();
+				makePremove();
+			});
+			this.animation.start();
+		});
+		this.httpServer.listen();
 		
 		canvas.setOnMousePressed(e -> {
 			if (Server.clients.size() == 1) return;
@@ -438,6 +456,10 @@ public class MainApplication extends Application{
 		this.animation = new PieceAnimation(this.currentSelection, not, () -> {
 			boolean ok = this.board.move(this.currentSelection, not, prom);
 			if (this.client != null) this.client.sendMessage(this.currentSelection+" "+not+(prom == null ? "" : " "+prom));
+
+			// TEST
+			this.httpServer.sendMove(String.format("%s;%s;%s", this.currentSelection, not, prom));
+
 			this.moveStart = this.currentSelection;
 			this.moveEnd = not;
 			this.currentSelection = null;
