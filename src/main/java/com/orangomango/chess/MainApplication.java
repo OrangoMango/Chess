@@ -58,6 +58,7 @@ public class MainApplication extends Application{
 	private Piece draggingPiece;
 	private double dragX, dragY;
 	private Piece promotionPiece;
+	private boolean dragging = false;
 	
 	private Client client;
 	private static Color startColor = Color.WHITE;
@@ -349,13 +350,14 @@ public class MainApplication extends Application{
 		
 		canvas.setOnMouseDragged(e -> {
 			if (e.getButton() == MouseButton.PRIMARY){
+				this.dragging = true;
 				if (this.draggingPiece != null){
 					this.dragX = e.getX();
 					double oldY = this.dragY;
 					this.dragY = e.getY();
 					if (this.promotionPiece == null){
 						if (this.draggingPiece.getType().getName() == Piece.PIECE_PAWN){
-							int y = (int) (getClickPoint(e.getX(), e.getY()).getY()/SQUARE_SIZE);
+							int y = (int)(getClickPoint(e.getX(), e.getY()).getY()/SQUARE_SIZE);
 							if (this.viewPoint == Color.BLACK) y = 7-y;
 							Piece prom = new Piece(Piece.Pieces.QUEEN, this.draggingPiece.getColor(), -1, -1);
 							if (this.draggingPiece.getColor() == Color.WHITE && y == 0 && this.draggingPiece.getY() == 1){
@@ -364,14 +366,16 @@ public class MainApplication extends Application{
 								this.promotionPiece = prom;
 							}
 						}
-					} else if ((e.getY() > oldY && this.draggingPiece.getColor() == Color.WHITE) || (e.getY() < oldY && this.draggingPiece.getColor() == Color.BLACK)){
-						double y = this.draggingPiece.getColor() == Color.WHITE ? 0 : 8;
+					} else {
+						double y = this.draggingPiece.getColor() == Color.WHITE ? 0 : 8; // Promotion square
+						if (this.viewPoint == Color.BLACK) y = 8-y;
 						y *= SQUARE_SIZE;
 						y += SPACE.getY();
 						String[] proms = new String[]{"Q", "R", "B", "N"};
-						int difference = (int)Math.round(e.getY()-y);
-						difference /= SQUARE_SIZE;
-						if ((difference < 0 && this.draggingPiece.getColor() == Color.WHITE) || (difference > 0 && this.draggingPiece.getColor() == Color.BLACK)){
+						int difference = (int)(Math.round(e.getY()-y)/SQUARE_SIZE);
+						double mouseDifference = this.dragY-oldY;
+						if (this.viewPoint == Color.BLACK) mouseDifference *= -1;
+						if (mouseDifference == 0 || (mouseDifference < 0 && this.draggingPiece.getColor() == Color.WHITE) || (mouseDifference > 0 && this.draggingPiece.getColor() == Color.BLACK)){
 							return;
 						} else {
 							difference = Math.abs(difference);
@@ -411,6 +415,7 @@ public class MainApplication extends Application{
 				}
 			}
 			this.promotionPiece = null;
+			this.dragging = false;
 		});
 		
 		Timeline loop = new Timeline(new KeyFrame(Duration.millis(1000.0/FPS), e -> update(gc)));
@@ -633,7 +638,7 @@ public class MainApplication extends Application{
 							gc.fillOval(pos.getX()*SQUARE_SIZE, pos.getY()*SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE);
 						}
 					}
-					if (piece != this.draggingPiece) gc.drawImage(piece.getImage(), pos.getX()*SQUARE_SIZE, pos.getY()*SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE);
+					if (!(piece == this.draggingPiece && this.dragging)) gc.drawImage(piece.getImage(), pos.getX()*SQUARE_SIZE, pos.getY()*SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE);
 				}
 				String text = "";
 				if (j == 7){
@@ -655,7 +660,7 @@ public class MainApplication extends Application{
 			}
 		}
 		
-		if (this.draggingPiece != null){
+		if (this.draggingPiece != null && this.dragging){
 			gc.drawImage(this.promotionPiece == null ? this.draggingPiece.getImage() : this.promotionPiece.getImage(), this.dragX-SPACE.getX()-SQUARE_SIZE/2.0, this.dragY-SPACE.getY()-SQUARE_SIZE/2.0, SQUARE_SIZE, SQUARE_SIZE);
 		}
 		

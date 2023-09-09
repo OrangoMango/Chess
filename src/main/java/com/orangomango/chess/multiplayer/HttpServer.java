@@ -32,7 +32,7 @@ public class HttpServer{
 						String[] parts = text[text.length-1].split(";");
 						if (parts.length == 3){
 							if (this.onRequest != null){
-								this.onRequest.applyMove(parts[0], parts[1], parts[2].equals("null") ? null : parts[2]);
+								this.onRequest.applyMove(parts[0].equals("null") ? null : parts[0], parts[1].equals("null") ? null : parts[1], parts[2].equals("null") ? null : parts[2]);
 							}
 							this.oldData = data;
 						}
