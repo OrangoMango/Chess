@@ -6,16 +6,18 @@ import java.io.*;
 public class HttpServer{
 	@FunctionalInterface
 	public static interface MoveRequest{
-		public void applyMove(String p1, String p2, String prom);
+		public void applyMove(int time, String p1, String p2, String prom);
 	}
 
 	private String host;
-	private String game = "test";
+	private String game;
 	private MoveRequest onRequest;
 	private volatile String oldData;
+	private volatile boolean running;
 
-	public HttpServer(String host){
+	public HttpServer(String host, String game){
 		this.host = host;
+		this.game = game;
 	}
 
 	public void setOnRequest(MoveRequest mr){
@@ -23,16 +25,17 @@ public class HttpServer{
 	}
 
 	public void listen(){
+		this.running = true;
 		Thread listener = new Thread(() -> {
-			while (true){
+			while (this.running){
 				try {
 					String data = getData();
 					if (!data.equals(this.oldData)){
 						String[] text = data.split(" ");
 						String[] parts = text[text.length-1].split(";");
-						if (parts.length == 3){
+						if (parts.length == 4){
 							if (this.onRequest != null){
-								this.onRequest.applyMove(parts[0].equals("null") ? null : parts[0], parts[1].equals("null") ? null : parts[1], parts[2].equals("null") ? null : parts[2]);
+								this.onRequest.applyMove(Integer.parseInt(parts[0]), parts[1].equals("null") ? null : parts[1], parts[2].equals("null") ? null : parts[2], parts[3].equals("null") ? null : parts[3]);
 							}
 							this.oldData = data;
 						}
@@ -45,6 +48,10 @@ public class HttpServer{
 		});
 		listener.setDaemon(true);
 		listener.start();
+	}
+
+	public void stop(){
+		this.running = false;
 	}
 
 	public synchronized String getData(){

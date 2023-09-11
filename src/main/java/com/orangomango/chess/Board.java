@@ -371,6 +371,14 @@ public class Board{
 	public int getTime(Color color){
 		return color == Color.WHITE ? (int)this.whiteTime : (int)this.blackTime;
 	}
+
+	public void setTime(Color color, int time){
+		if (color == Color.WHITE){
+			this.whiteTime = time;
+		} else {
+			this.blackTime = time;
+		}
+	}
 	
 	public void castleRight(Color color){
 		int ypos = color == Color.WHITE ? 7 : 0;
@@ -826,7 +834,7 @@ public class Board{
 	}
 	
 	public boolean isGameFinished(){
-		return isCheckMate(Color.WHITE) || isCheckMate(Color.BLACK) || isDraw() || this.whiteTime <= 0 || this.blackTime <= 0;
+		return isCheckMate(Color.WHITE) || isCheckMate(Color.BLACK) || isDraw() || this.whiteTime == 0 || this.blackTime == 0;
 	}
 	
 	@Override

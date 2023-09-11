@@ -5,7 +5,7 @@ import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
 import javafx.geometry.Rectangle2D;
 
-public class UiButton extends UiObject{
+public class UiButton extends UiObject implements Clickable{
 	private Runnable onClick;
 	private Image image;
 	private boolean on;
@@ -17,6 +17,7 @@ public class UiButton extends UiObject{
 		this.onClick = onClick;
 	}
 
+	@Override
 	public void click(double x, double y){
 		if (getAbsoluteRect().contains(x-this.screen.getRect().getMinX(), y-this.screen.getRect().getMinY())){
 			if (this.connection != null && this.on) return;

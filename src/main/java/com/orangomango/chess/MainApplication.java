@@ -18,7 +18,8 @@ import javafx.geometry.Rectangle2D;
 import javafx.geometry.Insets;
 import javafx.util.Duration;
 import javafx.scene.media.*;
-import javafx.scene.control.*;
+import javafx.scene.text.TextAlignment;
+import javafx.scene.text.Font;
 
 import java.io.*;
 import java.util.*;
@@ -34,8 +35,8 @@ import com.orangomango.chess.ui.*;
  * @author OrangoMango [https://orangomango.github.io]
  */
 public class MainApplication extends Application{
-	private static double WIDTH = 1000;
-	private static double HEIGHT = 800;
+	private static double WIDTH = 850;
+	private static double HEIGHT = 600;
 	private static int SQUARE_SIZE = (int)(WIDTH*0.05);
 	private static Point2D SPACE = new Point2D(WIDTH*0.1, (HEIGHT-SQUARE_SIZE*8)/2);
 	private static final int FPS = 40;
@@ -66,7 +67,7 @@ public class MainApplication extends Application{
 	private HttpServer httpServer;
 	
 	public static Media MOVE_SOUND, CAPTURE_SOUND, CASTLE_SOUND, CHECK_SOUND, ILLEGAL_SOUND, PROMOTE_SOUND;
-	private static Image PLAY_BLACK_IMAGE, PLAY_WHITE_IMAGE, LAN_IMAGE, SERVER_IMAGE, TIME_IMAGE, SINGLE_IMAGE, MULTI_IMAGE;
+	private static Image PLAY_BLACK_IMAGE, PLAY_WHITE_IMAGE, LAN_IMAGE, SERVER_IMAGE, TIME_IMAGE, SINGLE_IMAGE, MULTI_IMAGE, BACK_IMAGE;
 	
 	private static class Premove{
 		public String startPos, endPos, prom;
@@ -89,12 +90,13 @@ public class MainApplication extends Application{
 		Canvas canvas = new Canvas(WIDTH, HEIGHT);
 		GraphicsContext gc = canvas.getGraphicsContext2D();
 		pane.getChildren().add(canvas);
-		this.board = new Board(STARTPOS, 180000, 0);
+		this.board = new Board(STARTPOS, 60000, 0);
 		this.engine = new Engine();
 
-		this.httpServer = new HttpServer("http://127.0.0.1/paul_home/Chess-server/index.php");
-		this.httpServer.setOnRequest((p1, p2, prom) -> {
+		/*this.httpServer = new HttpServer("http://127.0.0.1/paul_home/Chess-server/index.php", "test");
+		this.httpServer.setOnRequest((time, p1, p2, prom) -> {
 			this.animation = new PieceAnimation(p1, p2, () -> {
+				this.board.setTime(this.viewPoint == Color.WHITE ? Color.BLACK : Color.WHITE, time);
 				this.board.move(p1, p2, prom);
 				this.hold.clear();
 				this.moveStart = p1;
@@ -106,7 +108,7 @@ public class MainApplication extends Application{
 			});
 			this.animation.start();
 		});
-		this.httpServer.listen();
+		this.httpServer.listen();*/
 
 		// UI
 		this.uiScreen = buildHomeScreen(gc);
@@ -128,7 +130,7 @@ public class MainApplication extends Application{
 						if (this.currentSelection == null){
 							if (this.board.getBoard()[x][y] == null && !getPremoves().contains(not)){
 								this.premoves.clear();
-							} else if (this.board.getBoard()[x][y].getColor() == this.viewPoint){
+							} else if (this.board.getBoard()[x][y] != null && this.board.getBoard()[x][y].getColor() == this.viewPoint){
 								this.currentSelection = not;
 							}
 						} else {
@@ -154,8 +156,8 @@ public class MainApplication extends Application{
 					}
 				} else {
 					for (UiObject obj : this.uiScreen.getChildren()){
-						if (obj instanceof UiButton){
-							((UiButton)obj).click(e.getX(), e.getY());
+						if (obj instanceof Clickable){
+							((Clickable)obj).click(e.getX(), e.getY());
 						}
 					}
 				}
@@ -445,15 +447,15 @@ public class MainApplication extends Application{
 
 	private UiScreen buildHomeScreen(GraphicsContext gc){
 		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(SPACE.getX()*2+SQUARE_SIZE*8, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
-		UiButton blackButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.08, 0.2, 0.2), PLAY_WHITE_IMAGE, () -> this.viewPoint = Color.WHITE);
-		UiButton whiteButton = new UiButton(uiScreen, gc, new Rectangle2D(0.35, 0.08, 0.2, 0.2), PLAY_BLACK_IMAGE, () -> this.viewPoint = Color.BLACK);
-		blackButton.connect(whiteButton, true);
-		whiteButton.connect(blackButton, false);
-		UiButton timeButton = new UiButton(uiScreen, gc, new Rectangle2D(0.65, 0.08, 0.25, 0.2), TIME_IMAGE, () -> System.out.println("Clicked7"));
-		UiButton singleButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.3, 0.8, 0.2), SINGLE_IMAGE, () -> System.out.println("Clicked3"));
+		UiButton whiteButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.08, 0.2, 0.2), PLAY_WHITE_IMAGE, () -> this.viewPoint = Color.WHITE);
+		UiButton blackButton = new UiButton(uiScreen, gc, new Rectangle2D(0.35, 0.08, 0.2, 0.2), PLAY_BLACK_IMAGE, () -> this.viewPoint = Color.BLACK);
+		blackButton.connect(whiteButton, this.viewPoint == Color.BLACK);
+		whiteButton.connect(blackButton, this.viewPoint == Color.WHITE);
+		UiButton timeButton = new UiButton(uiScreen, gc, new Rectangle2D(0.65, 0.08, 0.25, 0.2), TIME_IMAGE, () -> this.uiScreen = buildClockScreen(gc));
+		UiButton singleButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.3, 0.8, 0.2), SINGLE_IMAGE, () -> this.uiScreen = buildStockfishScreen(gc));
 		UiButton boardButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.5, 0.8, 0.2), MULTI_IMAGE, () -> System.out.println("Clicked4"));
-		UiButton lanButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.7, 0.35, 0.2), LAN_IMAGE, () -> System.out.println("Clicked5"));
-		UiButton multiplayerButton = new UiButton(uiScreen, gc, new Rectangle2D(0.55, 0.7, 0.35, 0.2), SERVER_IMAGE, () -> System.out.println("Clicked6"));
+		UiButton lanButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.7, 0.35, 0.2), LAN_IMAGE, () -> this.uiScreen = buildLanScreen(gc));
+		UiButton multiplayerButton = new UiButton(uiScreen, gc, new Rectangle2D(0.55, 0.7, 0.35, 0.2), SERVER_IMAGE, () -> this.uiScreen = buildServerScreen(gc));
 
 		uiScreen.getChildren().add(blackButton);
 		uiScreen.getChildren().add(whiteButton);
@@ -462,6 +464,101 @@ public class MainApplication extends Application{
 		uiScreen.getChildren().add(boardButton);
 		uiScreen.getChildren().add(lanButton);
 		uiScreen.getChildren().add(multiplayerButton);
+		return uiScreen;
+	}
+
+	private UiScreen buildClockScreen(GraphicsContext gc){
+		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(SPACE.getX()*2+SQUARE_SIZE*8, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
+		UiButton backButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.8, 0.2, 0.2), BACK_IMAGE, () -> this.uiScreen = buildHomeScreen(gc));
+
+		uiScreen.getChildren().add(backButton);
+		return uiScreen;
+	}
+
+	private UiScreen buildStockfishScreen(GraphicsContext gc){
+		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(SPACE.getX()*2+SQUARE_SIZE*8, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
+		UiButton backButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.8, 0.2, 0.2), BACK_IMAGE, () -> this.uiScreen = buildHomeScreen(gc));
+
+		uiScreen.getChildren().add(backButton);
+		return uiScreen;
+	}
+
+	private UiScreen buildLanScreen(GraphicsContext gc){
+		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(SPACE.getX()*2+SQUARE_SIZE*8, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
+		UiButton backButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.8, 0.2, 0.2), BACK_IMAGE, () -> this.uiScreen = buildHomeScreen(gc));
+		UiTextField ipField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.1, 0.8, 0.2), "127.0.0.1");
+		UiTextField portField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.3, 0.8, 0.2), "1234");
+		UiButton startServer = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.5, 0.2, 0.2), TIME_IMAGE, () -> {
+			try {
+				String ip = ipField.getValue();
+				int port = Integer.parseInt(portField.getValue());
+				Server server = new Server(ip, port);
+				System.out.println("Server started... 0/2 players connected");
+			} catch (NumberFormatException ex){
+				Logger.writeError(ex.getMessage());
+			}
+		});
+		UiButton connect = new UiButton(uiScreen, gc, new Rectangle2D(0.4, 0.5, 0.2, 0.2), TIME_IMAGE, () -> {
+			try {
+				String ip = ipField.getValue();
+				int port = Integer.parseInt(portField.getValue());
+				this.client = new Client(ip, port, this.viewPoint);
+				// Set board time
+				// ...
+				reset("", this.board.getGameTime(), this.board.getIncrementTime()); // Reset the board to startpos
+				if (!this.client.isConnected()){
+					this.client = null; // Error during the connection
+					return;
+				}
+				System.out.println("connected");
+				this.viewPoint = this.client.getColor();
+				this.uiScreen = buildHomeScreen(gc);
+				this.overTheBoard = false;
+				Thread listener = new Thread(() -> {
+					while (!this.gameFinished){
+						String message = this.client.getMessage();
+						if (message == null){
+							System.exit(0);
+						} else {
+							String moveData = message.split(";")[1];
+							this.animation = new PieceAnimation(moveData.split(" ")[0], moveData.split(" ")[1], () -> {
+								this.board.setTime(this.viewPoint == Color.WHITE ? Color.BLACK : Color.WHITE, Integer.parseInt(message.split(";")[0]));
+								String prom = moveData.split(" ").length == 3 ? moveData.split(" ")[2] : null;
+								this.board.move(moveData.split(" ")[0], moveData.split(" ")[1], prom);
+								this.hold.clear();
+								this.moveStart = moveData.split(" ")[0];
+								this.moveEnd = moveData.split(" ")[1];
+								this.animation = null;
+								this.currentSelection = null;
+								this.gameFinished = this.board.isGameFinished();
+								makePremove();
+							});
+							this.animation.start();
+						}
+					}
+				});
+				listener.setDaemon(true);
+				listener.start();
+			} catch (NumberFormatException ex){
+				Logger.writeError(ex.getMessage());
+			}
+		});
+
+		uiScreen.getChildren().add(backButton);
+		uiScreen.getChildren().add(ipField);
+		uiScreen.getChildren().add(portField);
+		uiScreen.getChildren().add(startServer);
+		uiScreen.getChildren().add(connect);
+		return uiScreen;
+	}
+
+	private UiScreen buildServerScreen(GraphicsContext gc){
+		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(SPACE.getX()*2+SQUARE_SIZE*8, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
+		UiButton backButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.8, 0.2, 0.2), BACK_IMAGE, () -> this.uiScreen = buildHomeScreen(gc));
+		UiTextField roomField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.1, 0.8, 0.2), "room-"+(int)(Math.random()*100000));
+
+		uiScreen.getChildren().add(backButton);
+		uiScreen.getChildren().add(roomField);
 		return uiScreen;
 	}
 
@@ -484,10 +581,10 @@ public class MainApplication extends Application{
 		String prom = isProm ? promType : null;
 		this.animation = new PieceAnimation(this.currentSelection, not, () -> {
 			boolean ok = this.board.move(this.currentSelection, not, prom);
-			if (this.client != null) this.client.sendMessage(this.currentSelection+" "+not+(prom == null ? "" : " "+prom));
+			if (this.client != null) this.client.sendMessage(this.board.getTime(this.viewPoint)+";"+this.currentSelection+" "+not+(prom == null ? "" : " "+prom));
 
 			// TEST
-			this.httpServer.sendMove(String.format("%s;%s;%s", this.currentSelection, not, prom));
+			//this.httpServer.sendMove(String.format("%s;%s;%s;%s", this.board.getTime(this.viewPoint), this.currentSelection, not, prom));
 
 			this.moveStart = this.currentSelection;
 			this.moveEnd = not;
@@ -564,7 +661,7 @@ public class MainApplication extends Application{
 				this.animation = new PieceAnimation(output.split(" ")[0], output.split(" ")[1], () -> {
 					String prom = output.split(" ").length == 3 ? output.split(" ")[2] : null;
 					this.board.move(output.split(" ")[0], output.split(" ")[1], prom);
-					if (this.client != null) this.client.sendMessage(output.split(" ")[0]+" "+output.split(" ")[1]);
+					if (this.client != null) this.client.sendMessage(this.board.getTime(this.viewPoint)+";"+output.split(" ")[0]+" "+output.split(" ")[1]);
 					this.hold.clear();
 					this.currentSelection = null;
 					this.moveStart = output.split(" ")[0];
@@ -597,7 +694,7 @@ public class MainApplication extends Application{
 		this.animation = new PieceAnimation(pre.startPos, pre.endPos, () -> {
 			boolean ok = this.board.move(pre.startPos, pre.endPos, pre.prom);
 			if (ok){
-				if (this.client != null) this.client.sendMessage(pre.startPos+" "+pre.endPos+(pre.prom == null ? "" : " "+pre.prom));
+				if (this.client != null) this.client.sendMessage(this.board.getTime(this.viewPoint)+";"+pre.startPos+" "+pre.endPos+(pre.prom == null ? "" : " "+pre.prom));
 				this.hold.clear();
 				this.moveStart = pre.startPos;
 				this.moveEnd = pre.endPos;
@@ -690,8 +787,8 @@ public class MainApplication extends Application{
 		
 		gc.restore();
 		
-		double wd = 130;
-		double bd = HEIGHT-130;
+		double wd = SPACE.getY()-SQUARE_SIZE*0.7;
+		double bd = SPACE.getY()+SQUARE_SIZE*8.65;
 		
 		// Captured difference
 		gc.setFill(Color.BLACK);
@@ -757,34 +854,40 @@ public class MainApplication extends Application{
 		
 		// Moves played
 		int count = 0;
-		for (int i = Math.max(this.board.getMoves().size()-12, 0); i < this.board.getMoves().size(); i++){
+		double wMove = SQUARE_SIZE*1.8;
+		double hMove = SQUARE_SIZE*0.6;
+		for (int i = Math.max(this.board.getMoves().size()-10, 0); i < this.board.getMoves().size(); i++){
 			gc.setStroke(Color.BLACK);
 			gc.setFill(i % 2 == 0 ? Color.web("#F58B23") : Color.web("#7D4711"));
-			double w = 75;
-			double h = 25;
-			double xp = 10+(count++)*w;
+			double xp = 10+(count++)*wMove;
 			double yp = 30;
-			gc.fillRect(xp, yp, w, h);
-			gc.strokeRect(xp, yp, w, h);
+			gc.fillRect(xp, yp, wMove, hMove);
+			gc.strokeRect(xp, yp, wMove, hMove);
 			gc.setFill(Color.BLACK);
-			gc.fillText((i/2+1)+"."+this.board.getMoves().get(i), xp+w*0.1, yp+h*0.75);
+			gc.fillText((i/2+1)+"."+this.board.getMoves().get(i), xp+wMove*0.1, yp+hMove*0.75);
 		}
 		
 		// Time remaining
-		/*gc.setStroke(Color.BLACK);
-		double timeWidth = WIDTH*0.3;
-		double timeHeight = SPACE*0.25;
-		gc.strokeRect(WIDTH*0.65, wd, timeWidth, timeHeight);
-		gc.strokeRect(WIDTH*0.65, bd, timeWidth, timeHeight);
+		gc.save();
+		gc.setStroke(Color.BLACK);
+		double timeWidth = SQUARE_SIZE*2.5;
+		double timeHeight = SQUARE_SIZE*0.8;
+		double timeX = SPACE.getX()+SQUARE_SIZE*8-timeWidth;
+		gc.strokeRect(timeX, wd-timeHeight, timeWidth, timeHeight);
+		gc.strokeRect(timeX, bd, timeWidth, timeHeight);
 		gc.setFill(Color.BLACK);
 		String topText = this.viewPoint == Color.WHITE ? formatTime(this.board.getTime(Color.BLACK)) : formatTime(this.board.getTime(Color.WHITE));
 		String bottomText = this.viewPoint == Color.WHITE ? formatTime(this.board.getTime(Color.WHITE)) : formatTime(this.board.getTime(Color.BLACK));
-		gc.fillText(topText, WIDTH*0.65+timeWidth*0.1, wd+timeHeight*0.75);
-		gc.fillText(bottomText, WIDTH*0.65+timeWidth*0.1, bd+timeHeight*0.75);*/
+		gc.setTextAlign(TextAlignment.CENTER);
+		gc.setFont(new Font("sans-serif", timeHeight*0.5));
+		gc.fillText(topText, timeX+timeWidth/2, wd-timeHeight+timeHeight*0.65);
+		gc.fillText(bottomText, timeX+timeWidth/2, bd+timeHeight*0.65);
+		gc.restore();
 
 		// UI
 		this.uiScreen.render();
 		
+		if (this.board.getTime(Color.WHITE) == 0 || this.board.getTime(Color.BLACK) == 0) this.gameFinished = true;
 		if (this.gameFinished){
 			gc.save();
 			gc.setFill(Color.BLACK);
@@ -803,10 +906,11 @@ public class MainApplication extends Application{
 		int s = ((time % (60*60*1000)) / 1000) % 60;
 		int ms = time % (60*60*1000) % 1000;
 		String text = "";
+		String msText = m == 0 && s < 30 ? String.format(".%03d", ms) : "";
 		if (h > 0){
-			return String.format("%d:%d:%d.%d", h, m, s, ms);
+			return String.format("%d:%d:%02d", h, m, s)+msText;
 		} else {
-			return String.format("%d:%d.%d", m, s, ms);
+			return String.format("%d:%02d", m, s)+msText;
 		}
 	}
 
@@ -827,6 +931,7 @@ public class MainApplication extends Application{
 		TIME_IMAGE = new Image(MainApplication.class.getResourceAsStream("/button_timecontrol.png"));
 		SINGLE_IMAGE = new Image(MainApplication.class.getResourceAsStream("/button_playstockfish.png"));
 		MULTI_IMAGE = new Image(MainApplication.class.getResourceAsStream("/button_playboard.png"));
+		BACK_IMAGE = new Image(MainApplication.class.getResourceAsStream("/button_back.png"));
 	}
 	
 	public static void playSound(Media media){
