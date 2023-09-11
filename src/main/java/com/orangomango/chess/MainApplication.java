@@ -14,6 +14,7 @@ import javafx.scene.image.Image;
 import javafx.scene.layout.*;
 import javafx.animation.*;
 import javafx.geometry.Point2D;
+import javafx.geometry.Rectangle2D;
 import javafx.geometry.Insets;
 import javafx.util.Duration;
 import javafx.scene.media.*;
@@ -25,6 +26,7 @@ import java.util.*;
 import com.orangomango.chess.multiplayer.HttpServer;
 import com.orangomango.chess.multiplayer.Server;
 import com.orangomango.chess.multiplayer.Client;
+import com.orangomango.chess.ui.*;
 
 /**
  * Chess client made in Java/JavaFX
@@ -32,11 +34,10 @@ import com.orangomango.chess.multiplayer.Client;
  * @author OrangoMango [https://orangomango.github.io]
  */
 public class MainApplication extends Application{
-	private static final int SQUARE_SIZE = 55;
-	private static final double WIDTH = 1000;
-	private static final double HEIGHT = 800;
-	private static final Point2D SPACE = new Point2D(90, (HEIGHT-SQUARE_SIZE*8)/2);
-	private volatile int frames, fps;
+	private static double WIDTH = 1000;
+	private static double HEIGHT = 800;
+	private static int SQUARE_SIZE = (int)(WIDTH*0.05);
+	private static Point2D SPACE = new Point2D(WIDTH*0.1, (HEIGHT-SQUARE_SIZE*8)/2);
 	private static final int FPS = 40;
 	private static final String STARTPOS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 	
@@ -50,7 +51,6 @@ public class MainApplication extends Application{
 	private Color viewPoint;
 	private boolean overTheBoard = true;
 	private boolean engineMove = false;
-	
 	private Map<String, List<String>> hold = new HashMap<>();
 	private String currentHold;
 	private String moveStart, moveEnd;
@@ -59,12 +59,14 @@ public class MainApplication extends Application{
 	private double dragX, dragY;
 	private Piece promotionPiece;
 	private boolean dragging = false;
+	private UiScreen uiScreen;
 	
 	private Client client;
 	private static Color startColor = Color.WHITE;
 	private HttpServer httpServer;
 	
 	public static Media MOVE_SOUND, CAPTURE_SOUND, CASTLE_SOUND, CHECK_SOUND, ILLEGAL_SOUND, PROMOTE_SOUND;
+	private static Image PLAY_BLACK_IMAGE, PLAY_WHITE_IMAGE, LAN_IMAGE, SERVER_IMAGE, TIME_IMAGE, SINGLE_IMAGE, MULTI_IMAGE;
 	
 	private static class Premove{
 		public String startPos, endPos, prom;
@@ -77,23 +79,10 @@ public class MainApplication extends Application{
 	}
 	
 	@Override
-	public void start(Stage stage){
-		Thread counter = new Thread(() -> {
-			while (true){
-				try {
-					this.fps = this.frames;
-					this.frames = 0;
-					Thread.sleep(1000);
-				} catch (InterruptedException ex){
-					ex.printStackTrace();
-				}
-			}
-		});
-		counter.setDaemon(true);
-		counter.start();
-		
+	public void start(Stage stage){		
 		this.viewPoint = startColor;
 		loadSounds();
+		loadImages();
 
 		stage.setTitle("Chess v2.0");
 		StackPane pane = new StackPane();
@@ -118,9 +107,11 @@ public class MainApplication extends Application{
 			this.animation.start();
 		});
 		this.httpServer.listen();
+
+		// UI
+		this.uiScreen = buildHomeScreen(gc);
 		
 		canvas.setOnMousePressed(e -> {
-			if (Server.clients.size() == 1) return;
 			if (e.getButton() == MouseButton.PRIMARY){
 				String not = getNotation(e);
 				Point2D clickPoint = getClickPoint(e.getX(), e.getY());
@@ -161,7 +152,14 @@ public class MainApplication extends Application{
 							this.dragY = e.getY();
 						}
 					}
-				} else if (e.getClickCount() == 2){
+				} else {
+					for (UiObject obj : this.uiScreen.getChildren()){
+						if (obj instanceof UiButton){
+							((UiButton)obj).click(e.getX(), e.getY());
+						}
+					}
+				}
+				/*if (e.getClickCount() == 2){
 					System.out.println(this.board.getFEN());
 					System.out.println(this.board.getPGN());
 					Alert alert = new Alert(Alert.AlertType.INFORMATION);
@@ -335,7 +333,7 @@ public class MainApplication extends Application{
 					layout.add(data, 0, 8);
 					alert.getDialogPane().setContent(layout);
 					alert.showAndWait();
-				}
+				}*/
 			} else if (e.getButton() == MouseButton.SECONDARY){
 				String h = getNotation(e);
 				if (h != null){
@@ -422,14 +420,6 @@ public class MainApplication extends Application{
 		loop.setCycleCount(Animation.INDEFINITE);
 		loop.play();
 		
-		AnimationTimer timer = new AnimationTimer(){
-			@Override
-			public void handle(long time){
-				MainApplication.this.frames++;
-			}
-		};
-		timer.start();
-		
 		Thread evalCalculator = new Thread(() -> {
 			Engine eng = new Engine();
 			try {
@@ -444,11 +434,45 @@ public class MainApplication extends Application{
 		});
 		evalCalculator.setDaemon(true);
 		evalCalculator.start();
-		
-		stage.setResizable(false);
+
+		stage.widthProperty().addListener((ob, oldV, newV) -> resize((double)newV, HEIGHT, canvas));
+		stage.heightProperty().addListener((ob, oldV, newV) -> resize(WIDTH, (double)newV, canvas));
+
 		stage.setScene(new Scene(pane, WIDTH, HEIGHT));
 		stage.getIcons().add(new Image(MainApplication.class.getResourceAsStream("/icon.png")));
 		stage.show();
+	}
+
+	private UiScreen buildHomeScreen(GraphicsContext gc){
+		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(SPACE.getX()*2+SQUARE_SIZE*8, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
+		UiButton blackButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.08, 0.2, 0.2), PLAY_WHITE_IMAGE, () -> this.viewPoint = Color.WHITE);
+		UiButton whiteButton = new UiButton(uiScreen, gc, new Rectangle2D(0.35, 0.08, 0.2, 0.2), PLAY_BLACK_IMAGE, () -> this.viewPoint = Color.BLACK);
+		blackButton.connect(whiteButton, true);
+		whiteButton.connect(blackButton, false);
+		UiButton timeButton = new UiButton(uiScreen, gc, new Rectangle2D(0.65, 0.08, 0.25, 0.2), TIME_IMAGE, () -> System.out.println("Clicked7"));
+		UiButton singleButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.3, 0.8, 0.2), SINGLE_IMAGE, () -> System.out.println("Clicked3"));
+		UiButton boardButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.5, 0.8, 0.2), MULTI_IMAGE, () -> System.out.println("Clicked4"));
+		UiButton lanButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.7, 0.35, 0.2), LAN_IMAGE, () -> System.out.println("Clicked5"));
+		UiButton multiplayerButton = new UiButton(uiScreen, gc, new Rectangle2D(0.55, 0.7, 0.35, 0.2), SERVER_IMAGE, () -> System.out.println("Clicked6"));
+
+		uiScreen.getChildren().add(blackButton);
+		uiScreen.getChildren().add(whiteButton);
+		uiScreen.getChildren().add(timeButton);
+		uiScreen.getChildren().add(singleButton);
+		uiScreen.getChildren().add(boardButton);
+		uiScreen.getChildren().add(lanButton);
+		uiScreen.getChildren().add(multiplayerButton);
+		return uiScreen;
+	}
+
+	private void resize(double w, double h, Canvas canvas){
+		WIDTH = w;
+		HEIGHT = h;
+		SQUARE_SIZE = (int)Math.min(HEIGHT/8*0.85, WIDTH*0.05);
+		SPACE = new Point2D(WIDTH*0.1, (HEIGHT-SQUARE_SIZE*8)/2);
+		canvas.setWidth(w);
+		canvas.setHeight(h);
+		this.uiScreen.setRect(new Rectangle2D(SPACE.getX()*2+SQUARE_SIZE*8, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
 	}
 
 	private Point2D getClickPoint(double x, double y){
@@ -757,8 +781,11 @@ public class MainApplication extends Application{
 		String bottomText = this.viewPoint == Color.WHITE ? formatTime(this.board.getTime(Color.WHITE)) : formatTime(this.board.getTime(Color.BLACK));
 		gc.fillText(topText, WIDTH*0.65+timeWidth*0.1, wd+timeHeight*0.75);
 		gc.fillText(bottomText, WIDTH*0.65+timeWidth*0.1, bd+timeHeight*0.75);*/
+
+		// UI
+		this.uiScreen.render();
 		
-		if (this.gameFinished || Server.clients.size() == 1){
+		if (this.gameFinished){
 			gc.save();
 			gc.setFill(Color.BLACK);
 			gc.setGlobalAlpha(0.6);
@@ -790,6 +817,16 @@ public class MainApplication extends Application{
 		CHECK_SOUND = new Media(MainApplication.class.getResource("/move-check.mp3").toExternalForm());
 		ILLEGAL_SOUND = new Media(MainApplication.class.getResource("/illegal.mp3").toExternalForm());
 		PROMOTE_SOUND = new Media(MainApplication.class.getResource("/promote.mp3").toExternalForm());
+	}
+
+	private static void loadImages(){
+		PLAY_BLACK_IMAGE = new Image(MainApplication.class.getResourceAsStream("/button_playblack.png"));
+		PLAY_WHITE_IMAGE = new Image(MainApplication.class.getResourceAsStream("/button_playwhite.png"));
+		LAN_IMAGE = new Image(MainApplication.class.getResourceAsStream("/button_lan.png"));
+		SERVER_IMAGE = new Image(MainApplication.class.getResourceAsStream("/button_server.png"));
+		TIME_IMAGE = new Image(MainApplication.class.getResourceAsStream("/button_timecontrol.png"));
+		SINGLE_IMAGE = new Image(MainApplication.class.getResourceAsStream("/button_playstockfish.png"));
+		MULTI_IMAGE = new Image(MainApplication.class.getResourceAsStream("/button_playboard.png"));
 	}
 	
 	public static void playSound(Media media){
