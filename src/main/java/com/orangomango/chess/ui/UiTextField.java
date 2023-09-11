@@ -19,6 +19,7 @@ public class UiTextField extends UiObject implements Clickable{
 	public void click(double x, double y){
 		if (getAbsoluteRect().contains(x-this.screen.getRect().getMinX(), y-this.screen.getRect().getMinY())){
 			TextInputDialog dialog = new TextInputDialog();
+			dialog.setTitle("Insert value");
 			dialog.setHeaderText("Insert value");
 			dialog.showAndWait().ifPresent(s -> this.placeHolder = s);
 		}

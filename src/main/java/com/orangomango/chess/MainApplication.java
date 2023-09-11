@@ -3,7 +3,6 @@ package com.orangomango.chess;
 import javafx.application.Application;
 import javafx.stage.Stage;
 import javafx.scene.Scene;
-import javafx.scene.layout.StackPane;
 import javafx.scene.canvas.*;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.MouseButton;
@@ -12,6 +11,7 @@ import javafx.scene.input.Clipboard;
 import javafx.scene.paint.Color;
 import javafx.scene.image.Image;
 import javafx.scene.layout.*;
+import javafx.scene.control.*;
 import javafx.animation.*;
 import javafx.geometry.Point2D;
 import javafx.geometry.Rectangle2D;
@@ -144,181 +144,6 @@ public class MainApplication extends Application{
 						}
 					}
 				}
-				/*if (e.getClickCount() == 2){
-					System.out.println(this.board.getFEN());
-					System.out.println(this.board.getPGN());
-					Alert alert = new Alert(Alert.AlertType.INFORMATION);
-					alert.setTitle("Settings");
-					alert.setHeaderText("Setup game");
-					GridPane layout = new GridPane();
-					layout.setPadding(new Insets(10, 10, 10, 10));
-					layout.setHgap(5);
-					layout.setVgap(5);
-					TextField sip = new TextField();
-					sip.setPromptText("192.168.1.247");
-					TextField sport = new TextField();
-					sport.setPromptText("1234");
-					TextField cip = new TextField();
-					cip.setPromptText("192.168.1.247");
-					TextField cport = new TextField();
-					cport.setPromptText("1234");
-					sip.setMaxWidth(120);
-					sport.setMaxWidth(80);
-					cip.setMaxWidth(120);
-					cport.setMaxWidth(80);
-					TextField timeControl = new TextField();
-					timeControl.setPromptText("180+0");
-					ToggleGroup grp = new ToggleGroup();
-					RadioButton w = new RadioButton("White");
-					w.setOnAction(ev -> this.viewPoint = Color.WHITE);
-					RadioButton b = new RadioButton("Black");
-					b.setOnAction(ev -> this.viewPoint = Color.BLACK);
-					Button startServer = new Button("Start server");
-					startServer.setOnAction(ev -> {
-						try {
-							String ip = sip.getText().equals("") ? "192.168.1.247" : sip.getText();
-							int port = sport.getText().equals("") ? 1234 : Integer.parseInt(sport.getText());
-							Server server = new Server(ip, port);
-							alert.close();
-						} catch (NumberFormatException ex){
-							Logger.writeError(ex.getMessage());
-						}
-					});
-					TextArea data = new TextArea(this.board.getFEN()+"\n\n"+this.board.getPGN());
-					Button connect = new Button("Connect");
-					connect.setOnAction(ev -> {
-						try {
-							String ip = cip.getText().equals("") ? "192.168.1.247" : cip.getText();
-							int port = cport.getText().equals("") ? 1234 : Integer.parseInt(cport.getText());
-							this.client = new Client(ip, port, this.viewPoint);
-							if (Server.clients.size() == 1){
-								reset(data.getText(), this.board.getGameTime(), this.board.getIncrementTime());
-							}
-							if (!this.client.isConnected()){
-								this.client = null;
-								return;
-							}
-							this.viewPoint = this.client.getColor();
-							this.overTheBoard = false;
-							Thread listener = new Thread(() -> {
-								while (!this.gameFinished){
-									String message = this.client.getMessage();
-									if (message == null){
-										System.exit(0);
-									} else {
-										this.animation = new PieceAnimation(message.split(" ")[0], message.split(" ")[1], () -> {
-											String prom = message.split(" ").length == 3 ? message.split(" ")[2] : null;
-											this.board.move(message.split(" ")[0], message.split(" ")[1], prom);
-											this.hold.clear();
-											this.moveStart = message.split(" ")[0];
-											this.moveEnd = message.split(" ")[1];
-											this.animation = null;
-											this.currentSelection = null;
-											this.gameFinished = this.board.isGameFinished();
-											makePremove();
-										});
-										this.animation.start();
-									}
-								}
-							});
-							listener.setDaemon(true);
-							listener.start();
-							alert.close();
-						} catch (NumberFormatException ex){
-							Logger.writeError(ex.getMessage());
-						}
-					});
-					CheckBox otb = new CheckBox("Over the board");
-					CheckBox eng = new CheckBox("Play against stockfish");
-					eng.setSelected(this.engineMove);
-					eng.setOnAction(ev -> {
-						this.overTheBoard = true;
-						otb.setSelected(true);
-						this.engineMove = eng.isSelected();
-						otb.setDisable(this.engineMove);
-						if (this.engineMove && this.board.getPlayer() != this.viewPoint){
-							makeEngineMove(false);
-							this.board.playerA = "stockfish";
-							this.board.playerB = System.getProperty("user.name");
-						} else {
-							this.board.playerA = System.getProperty("user.name");
-							this.board.playerB = "stockfish";
-						}
-					});
-					otb.setSelected(this.overTheBoard);
-					otb.setOnAction(ev -> {
-						this.overTheBoard = otb.isSelected();
-						if (this.viewPoint == Color.WHITE){
-							this.board.playerA = System.getProperty("user.name");
-							this.board.playerB = "BLACK";
-						} else {
-							this.board.playerA = "WHITE";
-							this.board.playerB = System.getProperty("user.name");
-						}
-					});
-					data.setMaxWidth(WIDTH*0.7);
-					w.setToggleGroup(grp);
-					w.setSelected(this.viewPoint == Color.WHITE);
-					b.setSelected(this.viewPoint == Color.BLACK);
-					b.setToggleGroup(grp);
-					Button reset = new Button("Reset board");
-					Button startEngine = new Button("Start engine thread");
-					Button copy = new Button("Copy");
-					copy.setOnAction(ev -> {
-						ClipboardContent cc = new ClipboardContent();
-						cc.putString(data.getText());
-						Clipboard cb = Clipboard.getSystemClipboard();
-						cb.setContent(cc);
-					});
-					startEngine.setDisable((this.board.getMovesN() > 1 && !this.gameFinished) || !this.engine.isRunning());
-					startEngine.setOnAction(ev -> {
-						this.overTheBoard = true;
-						Thread eg = new Thread(() -> {
-							try {
-								Thread.sleep(2000);
-								makeEngineMove(true);
-							} catch (InterruptedException ex){
-								Logger.writeError(ex.getMessage());
-							}
-						});
-						eg.setDaemon(true);
-						eg.start();
-						alert.close();
-					});
-					reset.setOnAction(ev -> {
-						try {
-							String text = data.getText();
-							long time = timeControl.getText().equals("") ? 180000l : Long.parseLong(timeControl.getText().split("\\+")[0])*1000;
-							int inc = timeControl.getText().equals("") ? 0 : Integer.parseInt(timeControl.getText().split("\\+")[1]);
-							reset(text, time, inc);
-							alert.close();
-						} catch (Exception ex){
-							Logger.writeError(ex.getMessage());
-						}
-					});
-					HBox serverInfo = new HBox(5, sip, sport, startServer);
-					HBox clientInfo = new HBox(5, cip, cport, connect);
-					HBox whiteBlack = new HBox(5, w, b);
-					HBox rs = new HBox(5, reset, startEngine);
-					serverInfo.setDisable(this.board.getMovesN() > 1 && !this.gameFinished);
-					clientInfo.setDisable(this.board.getMovesN() > 1 && !this.gameFinished);
-					whiteBlack.setDisable(this.board.getMovesN() > 1 && !this.gameFinished);
-					timeControl.setDisable(this.board.getMovesN() > 1 && !this.gameFinished);
-					rs.setDisable(this.board.getMovesN() > 1 && !this.gameFinished);
-					eng.setDisable((this.board.getMovesN() > 1 && !this.gameFinished) || !this.engine.isRunning());
-					otb.setDisable((this.board.getMovesN() > 1 && !this.gameFinished) || this.client != null);
-					layout.add(serverInfo, 0, 0);
-					layout.add(clientInfo, 0, 1);
-					layout.add(timeControl, 0, 2);
-					layout.add(eng, 0, 3);
-					layout.add(otb, 0, 4);
-					layout.add(whiteBlack, 0, 5);
-					layout.add(rs, 0, 6);
-					layout.add(copy, 0, 7);
-					layout.add(data, 0, 8);
-					alert.getDialogPane().setContent(layout);
-					alert.showAndWait();
-				}*/
 			} else if (e.getButton() == MouseButton.SECONDARY){
 				String h = getNotation(e);
 				if (h != null){
@@ -439,6 +264,39 @@ public class MainApplication extends Application{
 		UiButton boardButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.5, 0.8, 0.2), MULTI_IMAGE, () -> System.out.println("Clicked4"));
 		UiButton lanButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.7, 0.35, 0.2), LAN_IMAGE, () -> this.uiScreen = buildLanScreen(gc));
 		UiButton multiplayerButton = new UiButton(uiScreen, gc, new Rectangle2D(0.55, 0.7, 0.35, 0.2), SERVER_IMAGE, () -> this.uiScreen = buildServerScreen(gc));
+		UiButton editBoard = new UiButton(uiScreen, gc, new Rectangle2D(0.425, 0.875, 0.15, 0.15), TIME_IMAGE, () -> {
+			Dialog<ButtonType> dialog = new Dialog<>();
+			dialog.setTitle("Edit board");
+			dialog.setHeaderText("Edit board");
+			TextField fenField = new TextField(this.board.getFEN());
+			TextArea pgnField = new TextArea(this.board.getPGN());
+			GridPane layout = new GridPane();
+			layout.setHgap(5);
+			layout.setVgap(5);
+			layout.setPadding(new Insets(5, 5, 5, 5));
+			layout.add(fenField, 0, 0, 2, 1);
+			layout.add(pgnField, 0, 1, 2, 1);
+			dialog.getDialogPane().setContent(layout);
+			ButtonType copyFen = new ButtonType("Copy FEN");
+			ButtonType copyPgn = new ButtonType("Copy PGN");
+			ButtonType loadFen = new ButtonType("Load FEN");
+			dialog.getDialogPane().getButtonTypes().addAll(copyFen, loadFen, copyPgn, ButtonType.CANCEL);
+			dialog.showAndWait().ifPresent(b -> {
+				if (b == copyFen){
+					ClipboardContent cc = new ClipboardContent();
+					cc.putString(fenField.getText());
+					Clipboard cb = Clipboard.getSystemClipboard();
+					cb.setContent(cc);
+				} else if (b == copyPgn){
+					ClipboardContent cc = new ClipboardContent();
+					cc.putString(pgnField.getText());
+					Clipboard cb = Clipboard.getSystemClipboard();
+					cb.setContent(cc);
+				} else if (b == loadFen){
+					reset(fenField.getText(), this.board.getGameTime(), this.board.getIncrementTime());
+				}
+			});
+		});
 
 		uiScreen.getChildren().add(blackButton);
 		uiScreen.getChildren().add(whiteButton);
@@ -447,6 +305,7 @@ public class MainApplication extends Application{
 		uiScreen.getChildren().add(boardButton);
 		uiScreen.getChildren().add(lanButton);
 		uiScreen.getChildren().add(multiplayerButton);
+		uiScreen.getChildren().add(editBoard);
 		return uiScreen;
 	}
 
