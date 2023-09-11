@@ -12,7 +12,7 @@ public class HttpServer{
 	private String host;
 	private String game;
 	private MoveRequest onRequest;
-	private volatile String oldData;
+	private volatile String oldData = "";
 	private volatile boolean running;
 
 	public HttpServer(String host, String game){
@@ -30,8 +30,8 @@ public class HttpServer{
 			while (this.running){
 				try {
 					String data = getData();
-					if (!data.equals(this.oldData)){
-						String[] text = data.split(" ");
+					if (data.split(",").length == 2 && !data.equals(this.oldData)){
+						String[] text = data.split(",")[1].split(" ");
 						String[] parts = text[text.length-1].split(";");
 						if (parts.length == 4){
 							if (this.onRequest != null){
@@ -54,6 +54,11 @@ public class HttpServer{
 		this.running = false;
 	}
 
+	public String getHeader(){
+		String data = getData();
+		return data.split(",").length == 0 ? null : data.split(",")[0];
+	}
+
 	public synchronized String getData(){
 		try {
 			URL url = new URL(this.host+String.format("?game=%s", this.game));
@@ -68,13 +73,25 @@ public class HttpServer{
 		}
 	}
 
+	public void sendHeader(String header){
+		new Thread(() -> {
+			try {
+				URL url = new URL(this.host+String.format("?game=%s&header=%s", this.game, URLEncoder.encode(header, "UTF-8")));
+				url.openStream();
+				this.oldData = getData();
+				System.out.println("Header sent: "+header);
+			} catch (IOException ex){
+				ex.printStackTrace();
+			}
+		}).start();
+	}
+
 	public void sendMove(String move){
 		new Thread(() -> {
 			try {
 				URL url = new URL(this.host+String.format("?game=%s&move=%s", this.game, move));
 				url.openStream();
 				this.oldData = getData();
-				System.out.println("Move sent: "+move);
 			} catch (IOException ex){
 				ex.printStackTrace();
 			}

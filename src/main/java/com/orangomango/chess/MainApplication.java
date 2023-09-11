@@ -93,23 +93,6 @@ public class MainApplication extends Application{
 		this.board = new Board(STARTPOS, 60000, 0);
 		this.engine = new Engine();
 
-		/*this.httpServer = new HttpServer("http://127.0.0.1/paul_home/Chess-server/index.php", "test");
-		this.httpServer.setOnRequest((time, p1, p2, prom) -> {
-			this.animation = new PieceAnimation(p1, p2, () -> {
-				this.board.setTime(this.viewPoint == Color.WHITE ? Color.BLACK : Color.WHITE, time);
-				this.board.move(p1, p2, prom);
-				this.hold.clear();
-				this.moveStart = p1;
-				this.moveEnd = p2;
-				this.animation = null;
-				this.currentSelection = null;
-				this.gameFinished = this.board.isGameFinished();
-				makePremove();
-			});
-			this.animation.start();
-		});
-		this.httpServer.listen();*/
-
 		// UI
 		this.uiScreen = buildHomeScreen(gc);
 		
@@ -470,8 +453,19 @@ public class MainApplication extends Application{
 	private UiScreen buildClockScreen(GraphicsContext gc){
 		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(SPACE.getX()*2+SQUARE_SIZE*8, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
 		UiButton backButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.8, 0.2, 0.2), BACK_IMAGE, () -> this.uiScreen = buildHomeScreen(gc));
+		UiTextField timeField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.1, 0.8, 0.2), "600");
+		UiTextField incrementField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.3, 0.8, 0.2), "0");
+		UiButton saveButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.5, 0.8, 0.2), TIME_IMAGE, () -> {
+			long time = Long.parseLong(timeField.getValue())*1000;
+			int inc = Integer.parseInt(incrementField.getValue());
+			reset(STARTPOS, time, inc);
+			this.uiScreen = buildHomeScreen(gc);
+		});
 
 		uiScreen.getChildren().add(backButton);
+		uiScreen.getChildren().add(timeField);
+		uiScreen.getChildren().add(incrementField);
+		uiScreen.getChildren().add(saveButton);
 		return uiScreen;
 	}
 
@@ -492,7 +486,7 @@ public class MainApplication extends Application{
 			try {
 				String ip = ipField.getValue();
 				int port = Integer.parseInt(portField.getValue());
-				Server server = new Server(ip, port);
+				Server server = new Server(ip, port, this.board.getFEN(), this.board.getGameTime()+"+"+this.board.getIncrementTime());
 				System.out.println("Server started... 0/2 players connected");
 			} catch (NumberFormatException ex){
 				Logger.writeError(ex.getMessage());
@@ -503,15 +497,13 @@ public class MainApplication extends Application{
 				String ip = ipField.getValue();
 				int port = Integer.parseInt(portField.getValue());
 				this.client = new Client(ip, port, this.viewPoint);
-				// Set board time
-				// ...
-				reset("", this.board.getGameTime(), this.board.getIncrementTime()); // Reset the board to startpos
 				if (!this.client.isConnected()){
 					this.client = null; // Error during the connection
 					return;
 				}
 				System.out.println("connected");
 				this.viewPoint = this.client.getColor();
+				reset(this.client.getFEN(), this.client.getGameTime(), this.client.getIncrementTime());
 				this.uiScreen = buildHomeScreen(gc);
 				this.overTheBoard = false;
 				Thread listener = new Thread(() -> {
@@ -556,9 +548,34 @@ public class MainApplication extends Application{
 		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(SPACE.getX()*2+SQUARE_SIZE*8, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
 		UiButton backButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.8, 0.2, 0.2), BACK_IMAGE, () -> this.uiScreen = buildHomeScreen(gc));
 		UiTextField roomField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.1, 0.8, 0.2), "room-"+(int)(Math.random()*100000));
+		UiButton connect = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.3, 0.8, 0.2), TIME_IMAGE, () -> {
+			this.httpServer = new HttpServer("http://127.0.0.1/paul_home/Chess-server/index.php", roomField.getValue());
+			String header = this.httpServer.getHeader();
+			if (header == null){
+				this.httpServer.sendHeader(this.board.getFEN()+";"+this.board.getGameTime()+"+"+this.board.getIncrementTime());	
+			} else {
+				reset(header.split(";")[0], Long.parseLong(header.split(";")[1].split("\\+")[0]), Integer.parseInt(header.split(";")[1].split("\\+")[1]));
+			}
+			this.httpServer.setOnRequest((time, p1, p2, prom) -> {
+				this.animation = new PieceAnimation(p1, p2, () -> {
+					this.board.setTime(this.viewPoint == Color.WHITE ? Color.BLACK : Color.WHITE, time);
+					this.board.move(p1, p2, prom);
+					this.hold.clear();
+					this.moveStart = p1;
+					this.moveEnd = p2;
+					this.animation = null;
+					this.currentSelection = null;
+					this.gameFinished = this.board.isGameFinished();
+					makePremove();
+				});
+				this.animation.start();
+			});
+			this.httpServer.listen();
+		});
 
 		uiScreen.getChildren().add(backButton);
 		uiScreen.getChildren().add(roomField);
+		uiScreen.getChildren().add(connect);
 		return uiScreen;
 	}
 
@@ -582,10 +599,7 @@ public class MainApplication extends Application{
 		this.animation = new PieceAnimation(this.currentSelection, not, () -> {
 			boolean ok = this.board.move(this.currentSelection, not, prom);
 			if (this.client != null) this.client.sendMessage(this.board.getTime(this.viewPoint)+";"+this.currentSelection+" "+not+(prom == null ? "" : " "+prom));
-
-			// TEST
-			//this.httpServer.sendMove(String.format("%s;%s;%s;%s", this.board.getTime(this.viewPoint), this.currentSelection, not, prom));
-
+			if (this.httpServer != null) this.httpServer.sendMove(String.format("%s;%s;%s;%s", this.board.getTime(this.viewPoint), this.currentSelection, not, prom));
 			this.moveStart = this.currentSelection;
 			this.moveEnd = not;
 			this.currentSelection = null;
@@ -638,11 +652,7 @@ public class MainApplication extends Application{
 		return Board.convertPosition(x, y);
 	}
 	
-	private void reset(String text, long time, int inc){
-		String fen = STARTPOS;
-		if (text.startsWith("CUSTOM\n")){
-			fen = text.split("\n")[1];
-		}
+	private void reset(String fen, long time, int inc){
 		this.board = new Board(fen, time, inc);
 		this.gameFinished = false;
 		this.moveStart = null;
@@ -873,8 +883,9 @@ public class MainApplication extends Application{
 		double timeWidth = SQUARE_SIZE*2.5;
 		double timeHeight = SQUARE_SIZE*0.8;
 		double timeX = SPACE.getX()+SQUARE_SIZE*8-timeWidth;
-		gc.strokeRect(timeX, wd-timeHeight, timeWidth, timeHeight);
-		gc.strokeRect(timeX, bd, timeWidth, timeHeight);
+		gc.setLineWidth(2);
+		gc.strokeRoundRect(timeX, wd-timeHeight, timeWidth, timeHeight, 7, 7);
+		gc.strokeRoundRect(timeX, bd, timeWidth, timeHeight, 7, 7);
 		gc.setFill(Color.BLACK);
 		String topText = this.viewPoint == Color.WHITE ? formatTime(this.board.getTime(Color.BLACK)) : formatTime(this.board.getTime(Color.WHITE));
 		String bottomText = this.viewPoint == Color.WHITE ? formatTime(this.board.getTime(Color.WHITE)) : formatTime(this.board.getTime(Color.BLACK));
