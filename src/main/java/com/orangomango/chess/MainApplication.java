@@ -68,7 +68,7 @@ public class MainApplication extends Application{
 	private HttpServer httpServer;
 	
 	public static Media MOVE_SOUND, CAPTURE_SOUND, CASTLE_SOUND, CHECK_SOUND, ILLEGAL_SOUND, PROMOTE_SOUND;
-	private static Image PLAY_BLACK_IMAGE, PLAY_WHITE_IMAGE, LAN_IMAGE, SERVER_IMAGE, TIME_IMAGE, SINGLE_IMAGE, MULTI_IMAGE, BACK_IMAGE;
+	private static Image PLAY_BLACK_IMAGE, PLAY_WHITE_IMAGE, LAN_IMAGE, SERVER_IMAGE, TIME_IMAGE, SINGLE_IMAGE, MULTI_IMAGE, BACK_IMAGE, CONNECT_CLIENT_IMAGE, START_SERVER_IMAGE, EDIT_IMAGE, SAVE_IMAGE, HTTP_IMAGE;
 	
 	private static class Premove{
 		public String startPos, endPos, prom;
@@ -91,7 +91,7 @@ public class MainApplication extends Application{
 		Canvas canvas = new Canvas(WIDTH, HEIGHT);
 		GraphicsContext gc = canvas.getGraphicsContext2D();
 		pane.getChildren().add(canvas);
-		this.board = new Board(STARTPOS, 60000, 0);
+		this.board = new Board(STARTPOS, 600000, 0);
 		this.engine = new Engine();
 
 		// UI
@@ -271,9 +271,11 @@ public class MainApplication extends Application{
 			this.overTheBoard = true;
 			this.engineMove = false;
 		});
+		singleButton.connect(boardButton, this.engineMove);
+		boardButton.connect(singleButton, this.overTheBoard);
 		UiButton lanButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.7, 0.35, 0.2), LAN_IMAGE, () -> this.uiScreen = buildLanScreen(gc));
 		UiButton multiplayerButton = new UiButton(uiScreen, gc, new Rectangle2D(0.55, 0.7, 0.35, 0.2), SERVER_IMAGE, () -> this.uiScreen = buildServerScreen(gc));
-		UiButton editBoard = new UiButton(uiScreen, gc, new Rectangle2D(0.425, 0.875, 0.15, 0.15), TIME_IMAGE, () -> {
+		UiButton editBoard = new UiButton(uiScreen, gc, new Rectangle2D(0.425, 0.875, 0.15, 0.15), EDIT_IMAGE, () -> {
 			Dialog<ButtonType> dialog = new Dialog<>();
 			dialog.setTitle("Edit board");
 			dialog.setHeaderText("Edit board");
@@ -330,7 +332,7 @@ public class MainApplication extends Application{
 		UiButton backButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.8, 0.2, 0.2), BACK_IMAGE, () -> this.uiScreen = buildHomeScreen(gc));
 		UiTextField timeField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.1, 0.8, 0.2), "600");
 		UiTextField incrementField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.3, 0.8, 0.2), "0");
-		UiButton saveButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.5, 0.8, 0.2), TIME_IMAGE, () -> {
+		UiButton saveButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.5, 0.8, 0.2), SAVE_IMAGE, () -> {
 			long time = Long.parseLong(timeField.getValue())*1000;
 			int inc = Integer.parseInt(incrementField.getValue());
 			reset(STARTPOS, time, inc);
@@ -349,17 +351,17 @@ public class MainApplication extends Application{
 		UiButton backButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.8, 0.2, 0.2), BACK_IMAGE, () -> this.uiScreen = buildHomeScreen(gc));
 		UiTextField ipField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.1, 0.8, 0.2), "127.0.0.1");
 		UiTextField portField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.3, 0.8, 0.2), "1234");
-		UiButton startServer = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.5, 0.2, 0.2), TIME_IMAGE, () -> {
+		UiButton startServer = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.5, 0.2, 0.2), START_SERVER_IMAGE, () -> {
 			try {
 				String ip = ipField.getValue();
 				int port = Integer.parseInt(portField.getValue());
 				Server server = new Server(ip, port, this.board.getFEN(), this.board.getGameTime()+"+"+this.board.getIncrementTime());
-				System.out.println("Server started... 0/2 players connected");
+				this.uiScreen = buildHomeScreen(gc);
 			} catch (NumberFormatException ex){
 				Logger.writeError(ex.getMessage());
 			}
 		});
-		UiButton connect = new UiButton(uiScreen, gc, new Rectangle2D(0.4, 0.5, 0.2, 0.2), TIME_IMAGE, () -> {
+		UiButton connect = new UiButton(uiScreen, gc, new Rectangle2D(0.4, 0.5, 0.2, 0.2), CONNECT_CLIENT_IMAGE, () -> {
 			try {
 				String ip = ipField.getValue();
 				int port = Integer.parseInt(portField.getValue());
@@ -368,7 +370,6 @@ public class MainApplication extends Application{
 					this.client = null; // Error during the connection
 					return;
 				}
-				System.out.println("connected");
 				this.viewPoint = this.client.getColor();
 				reset(this.client.getFEN(), this.client.getGameTime(), this.client.getIncrementTime());
 				this.uiScreen = buildHomeScreen(gc);
@@ -416,10 +417,9 @@ public class MainApplication extends Application{
 		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(SPACE.getX()*2+SQUARE_SIZE*8, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
 		UiButton backButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.8, 0.2, 0.2), BACK_IMAGE, () -> this.uiScreen = buildHomeScreen(gc));
 		UiTextField roomField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.1, 0.8, 0.2), "room-"+(int)(Math.random()*100000));
-		UiButton connect = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.3, 0.8, 0.2), TIME_IMAGE, () -> {
+		UiButton connect = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.3, 0.8, 0.2), HTTP_IMAGE, () -> {
 			this.httpServer = new HttpServer("http://127.0.0.1/paul_home/Chess-server/index.php", roomField.getValue(), this.viewPoint == Color.WHITE ? "WHITE" : "BLACK");
 			if (this.httpServer.isFull()){
-				// ...
 				System.exit(0);
 			}
 			this.viewPoint = this.httpServer.getColor();
@@ -446,6 +446,7 @@ public class MainApplication extends Application{
 				this.animation.start();
 			});
 			this.httpServer.listen();
+			this.uiScreen = buildHomeScreen(gc);
 		});
 
 		uiScreen.getChildren().add(backButton);
@@ -794,7 +795,7 @@ public class MainApplication extends Application{
 		gc.restore();
 
 		// UI
-		this.uiScreen.setDisabled(!this.gameFinished && this.board.getMoves().size() > 1);
+		this.uiScreen.setDisabled(!this.gameFinished && this.board.getMoves().size() > 0);
 		this.uiScreen.render();
 		
 		if (this.board.getTime(Color.WHITE) == 0 || this.board.getTime(Color.BLACK) == 0) this.gameFinished = true;
@@ -854,6 +855,11 @@ public class MainApplication extends Application{
 		SINGLE_IMAGE = new Image(MainApplication.class.getResourceAsStream("/button_playstockfish.png"));
 		MULTI_IMAGE = new Image(MainApplication.class.getResourceAsStream("/button_playboard.png"));
 		BACK_IMAGE = new Image(MainApplication.class.getResourceAsStream("/button_back.png"));
+		CONNECT_CLIENT_IMAGE = new Image(MainApplication.class.getResourceAsStream("/button_connectclient.png"));
+		START_SERVER_IMAGE = new Image(MainApplication.class.getResourceAsStream("/button_startserver.png"));
+		EDIT_IMAGE = new Image(MainApplication.class.getResourceAsStream("/button_editboard.png"));
+		SAVE_IMAGE = new Image(MainApplication.class.getResourceAsStream("/button_save.png"));
+		HTTP_IMAGE = new Image(MainApplication.class.getResourceAsStream("/button_http.png"));
 	}
 	
 	public static void playSound(Media media){

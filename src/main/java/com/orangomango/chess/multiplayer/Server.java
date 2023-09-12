@@ -34,7 +34,6 @@ public class Server{
 					Socket socket = this.server.accept();
 					ClientManager cm = new ClientManager(socket);
 					clients.add(cm);
-					System.out.println("Client connected. "+clients.size()+"/2");
 					cm.reply();
 				} catch (IOException ex){
 					ex.printStackTrace();
