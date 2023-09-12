@@ -40,7 +40,7 @@ public class MainApplication extends Application{
 	private static int SQUARE_SIZE = (int)(WIDTH*0.05);
 	private static Point2D SPACE = new Point2D(WIDTH*0.1, (HEIGHT-SQUARE_SIZE*8)/2);
 	private static final int FPS = 40;
-	private static final String STARTPOS = "8/6k1/8/8/8/8/2K1P3/5R2 w - - 0 1"; //"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+	private static final String STARTPOS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 	
 	private Board board;
 	private Engine engine;
@@ -417,7 +417,12 @@ public class MainApplication extends Application{
 		UiButton backButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.8, 0.2, 0.2), BACK_IMAGE, () -> this.uiScreen = buildHomeScreen(gc));
 		UiTextField roomField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.1, 0.8, 0.2), "room-"+(int)(Math.random()*100000));
 		UiButton connect = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.3, 0.8, 0.2), TIME_IMAGE, () -> {
-			this.httpServer = new HttpServer("http://127.0.0.1/paul_home/Chess-server/index.php", roomField.getValue());
+			this.httpServer = new HttpServer("http://127.0.0.1/paul_home/Chess-server/index.php", roomField.getValue(), this.viewPoint == Color.WHITE ? "WHITE" : "BLACK");
+			if (this.httpServer.isFull()){
+				// ...
+				System.exit(0);
+			}
+			this.viewPoint = this.httpServer.getColor();
 			String header = this.httpServer.getHeader();
 			if (header == null){
 				this.httpServer.sendHeader(this.board.getFEN()+";"+this.board.getGameTime()+"+"+this.board.getIncrementTime());	
@@ -753,7 +758,7 @@ public class MainApplication extends Application{
 			}
 		}
 		
-		//gc.fillText("Eval: "+this.eval, WIDTH*0.7, HEIGHT-SPACE*0.7);
+		gc.fillText("Eval: "+this.eval, WIDTH*0.8, HEIGHT*0.9);
 		
 		// Moves played
 		int count = 0;
@@ -789,7 +794,7 @@ public class MainApplication extends Application{
 		gc.restore();
 
 		// UI
-		this.uiScreen.setDisabled(!this.gameFinished && this.board.getMoves().size() > 0);
+		this.uiScreen.setDisabled(!this.gameFinished && this.board.getMoves().size() > 1);
 		this.uiScreen.render();
 		
 		if (this.board.getTime(Color.WHITE) == 0 || this.board.getTime(Color.BLACK) == 0) this.gameFinished = true;
