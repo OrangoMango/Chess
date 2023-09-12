@@ -40,7 +40,7 @@ public class MainApplication extends Application{
 	private static int SQUARE_SIZE = (int)(WIDTH*0.05);
 	private static Point2D SPACE = new Point2D(WIDTH*0.1, (HEIGHT-SQUARE_SIZE*8)/2);
 	private static final int FPS = 40;
-	private static final String STARTPOS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+	private static final String STARTPOS = "8/6k1/8/8/8/8/2K1P3/5R2 w - - 0 1"; //"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 	
 	private Board board;
 	private Engine engine;
@@ -61,6 +61,7 @@ public class MainApplication extends Application{
 	private Piece promotionPiece;
 	private boolean dragging = false;
 	private UiScreen uiScreen;
+	private String gameOverText;
 	
 	private Client client;
 	private static Color startColor = Color.WHITE;
@@ -106,15 +107,13 @@ public class MainApplication extends Application{
 					x = 7-x;
 					y = 7-y;
 				}
-				if (not != null){
-					if (this.gameFinished){
-						return;
-					} else if (this.board.getPlayer() != this.viewPoint && (this.engineMove || !this.overTheBoard)){
+				if (not != null && !this.gameFinished){
+					if (this.board.getPlayer() != this.viewPoint && (this.engineMove || !this.overTheBoard)){
 						if (this.currentSelection == null){
-							if (this.board.getBoard()[x][y] == null && !getPremoves().contains(not)){
-								this.premoves.clear();
-							} else if (this.board.getBoard()[x][y] != null && this.board.getBoard()[x][y].getColor() == this.viewPoint){
+							if (getPremoves().contains(not) || (this.board.getBoard()[x][y] != null && this.board.getBoard()[x][y].getColor() == this.viewPoint)){
 								this.currentSelection = not;
+							} else if (this.board.getBoard()[x][y] == null){
+								this.premoves.clear();
 							}
 						} else {
 							boolean isProm = isPromotion(this.currentSelection, not);
@@ -138,15 +137,17 @@ public class MainApplication extends Application{
 						}
 					}
 				} else {
-					for (UiObject obj : this.uiScreen.getChildren()){
-						if (obj instanceof Clickable){
-							((Clickable)obj).click(e.getX(), e.getY());
+					if (!this.uiScreen.isDisabled()){
+						for (UiObject obj : this.uiScreen.getChildren()){
+							if (obj instanceof Clickable){
+								((Clickable)obj).click(e.getX(), e.getY());
+							}
 						}
 					}
 				}
 			} else if (e.getButton() == MouseButton.SECONDARY){
 				String h = getNotation(e);
-				if (h != null){
+				if (h != null && !this.gameFinished){
 					this.currentHold = h;
 					if (!this.hold.keySet().contains(h)) this.hold.put(h, new ArrayList<String>());
 				}
@@ -158,6 +159,7 @@ public class MainApplication extends Application{
 		
 		canvas.setOnMouseDragged(e -> {
 			if (e.getButton() == MouseButton.PRIMARY){
+				if (this.gameFinished) return;
 				this.dragging = true;
 				if (this.draggingPiece != null){
 					this.dragX = e.getX();
@@ -196,14 +198,14 @@ public class MainApplication extends Application{
 		
 		canvas.setOnMouseReleased(e -> {
 			String h = getNotation(e);
+			Point2D clickPoint = getClickPoint(e.getX(), e.getY());
+			int x = (int)(clickPoint.getX()/SQUARE_SIZE);
+			int y = (int)(clickPoint.getY()/SQUARE_SIZE);
+			if (this.viewPoint == Color.BLACK){
+				x = 7-x;
+				y = 7-y;
+			}
 			if (e.getButton() == MouseButton.PRIMARY){
-				Point2D clickPoint = getClickPoint(e.getX(), e.getY());
-				int x = (int)(clickPoint.getX()/SQUARE_SIZE);
-				int y = (int)(clickPoint.getY()/SQUARE_SIZE);
-				if (this.viewPoint == Color.BLACK){
-					x = 7-x;
-					y = 7-y;
-				}
 				if (this.currentSelection != null && h != null && this.draggingPiece != null && !this.currentSelection.equals(h)){
 					makeUserMove(h, x, y, true, this.promotionPiece == null ? null : this.promotionPiece.getType().getName());
 				} else {
@@ -217,7 +219,8 @@ public class MainApplication extends Application{
 						if (f.equals(h)){
 							this.hold.clear();
 						} else {
-							this.hold.get(f).add(h);
+							List<String> list = this.hold.get(f);
+							if (list != null) list.add(h);
 						}
 					}
 				}
@@ -260,8 +263,14 @@ public class MainApplication extends Application{
 		blackButton.connect(whiteButton, this.viewPoint == Color.BLACK);
 		whiteButton.connect(blackButton, this.viewPoint == Color.WHITE);
 		UiButton timeButton = new UiButton(uiScreen, gc, new Rectangle2D(0.65, 0.08, 0.25, 0.2), TIME_IMAGE, () -> this.uiScreen = buildClockScreen(gc));
-		UiButton singleButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.3, 0.8, 0.2), SINGLE_IMAGE, () -> this.uiScreen = buildStockfishScreen(gc));
-		UiButton boardButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.5, 0.8, 0.2), MULTI_IMAGE, () -> System.out.println("Clicked4"));
+		UiButton singleButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.3, 0.8, 0.2), SINGLE_IMAGE, () -> {
+			this.overTheBoard = false;
+			this.engineMove = true;
+		});
+		UiButton boardButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.5, 0.8, 0.2), MULTI_IMAGE, () -> {
+			this.overTheBoard = true;
+			this.engineMove = false;
+		});
 		UiButton lanButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.7, 0.35, 0.2), LAN_IMAGE, () -> this.uiScreen = buildLanScreen(gc));
 		UiButton multiplayerButton = new UiButton(uiScreen, gc, new Rectangle2D(0.55, 0.7, 0.35, 0.2), SERVER_IMAGE, () -> this.uiScreen = buildServerScreen(gc));
 		UiButton editBoard = new UiButton(uiScreen, gc, new Rectangle2D(0.425, 0.875, 0.15, 0.15), TIME_IMAGE, () -> {
@@ -293,7 +302,14 @@ public class MainApplication extends Application{
 					Clipboard cb = Clipboard.getSystemClipboard();
 					cb.setContent(cc);
 				} else if (b == loadFen){
-					reset(fenField.getText(), this.board.getGameTime(), this.board.getIncrementTime());
+					try {
+						reset(fenField.getText(), this.board.getGameTime(), this.board.getIncrementTime());
+					} catch (IllegalStateException|ArrayIndexOutOfBoundsException ex){
+						Alert alert = new Alert(Alert.AlertType.ERROR);
+						alert.setTitle("Error");
+						alert.setHeaderText(ex.getMessage());
+						alert.showAndWait();
+					}
 				}
 			});
 		});
@@ -328,14 +344,6 @@ public class MainApplication extends Application{
 		return uiScreen;
 	}
 
-	private UiScreen buildStockfishScreen(GraphicsContext gc){
-		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(SPACE.getX()*2+SQUARE_SIZE*8, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
-		UiButton backButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.8, 0.2, 0.2), BACK_IMAGE, () -> this.uiScreen = buildHomeScreen(gc));
-
-		uiScreen.getChildren().add(backButton);
-		return uiScreen;
-	}
-
 	private UiScreen buildLanScreen(GraphicsContext gc){
 		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(SPACE.getX()*2+SQUARE_SIZE*8, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
 		UiButton backButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.8, 0.2, 0.2), BACK_IMAGE, () -> this.uiScreen = buildHomeScreen(gc));
@@ -365,6 +373,7 @@ public class MainApplication extends Application{
 				reset(this.client.getFEN(), this.client.getGameTime(), this.client.getIncrementTime());
 				this.uiScreen = buildHomeScreen(gc);
 				this.overTheBoard = false;
+				this.engineMove = false;
 				Thread listener = new Thread(() -> {
 					while (!this.gameFinished){
 						String message = this.client.getMessage();
@@ -415,6 +424,8 @@ public class MainApplication extends Application{
 			} else {
 				reset(header.split(";")[0], Long.parseLong(header.split(";")[1].split("\\+")[0]), Integer.parseInt(header.split(";")[1].split("\\+")[1]));
 			}
+			this.overTheBoard = false;
+			this.engineMove = false;
 			this.httpServer.setOnRequest((time, p1, p2, prom) -> {
 				this.animation = new PieceAnimation(p1, p2, () -> {
 					this.board.setTime(this.viewPoint == Color.WHITE ? Color.BLACK : Color.WHITE, time);
@@ -485,7 +496,29 @@ public class MainApplication extends Application{
 	}
 
 	private boolean isPromotion(String a, String b){
-		Piece piece = this.board.getBoard()[Board.convertNotation(a)[0]][Board.convertNotation(a)[1]];
+		int[] pos = Board.convertNotation(a);
+		Piece piece = this.board.getBoard()[pos[0]][pos[1]];
+		if (piece == null){ // This might be a premove
+			int[] pos2 = Board.convertNotation(b);
+			if (pos2[1] < pos[1]){
+				for (int i = 0; i < 8; i++){
+					Piece p = this.board.getBoard()[pos[0]][i];
+					if (p != null && p.getType().getName() == Piece.PIECE_PAWN){
+						piece = p;
+						break;
+					}
+				}
+			} else if (pos2[1] > pos[1]){
+				for (int i = 7; i >= 0; i--){
+					Piece p = this.board.getBoard()[pos[0]][i];
+					if (p != null && p.getType().getName() == Piece.PIECE_PAWN){
+						piece = p;
+						break;
+					}
+				}
+			}
+		}
+		if (piece == null) return false; // If it's still null ...
 		if (piece.getType().getName() == Piece.PIECE_PAWN){
 			if (piece.getColor() == Color.WHITE && Board.convertNotation(b)[1] == 0){
 				return true;
@@ -513,13 +546,14 @@ public class MainApplication extends Application{
 	
 	private void reset(String fen, long time, int inc){
 		this.board = new Board(fen, time, inc);
-		this.gameFinished = false;
+		this.gameFinished = this.board.isGameFinished();
 		this.moveStart = null;
 		this.moveEnd = null;
 		this.hold.clear();
 		this.premoves.clear();
 		this.currentHold = null;
 		this.currentMoves = null;
+		this.gameOverText = null;
 	}
 	
 	private void makeEngineMove(boolean game){
@@ -755,6 +789,7 @@ public class MainApplication extends Application{
 		gc.restore();
 
 		// UI
+		this.uiScreen.setDisabled(!this.gameFinished && this.board.getMoves().size() > 0);
 		this.uiScreen.render();
 		
 		if (this.board.getTime(Color.WHITE) == 0 || this.board.getTime(Color.BLACK) == 0) this.gameFinished = true;
@@ -762,9 +797,21 @@ public class MainApplication extends Application{
 			gc.save();
 			gc.setFill(Color.BLACK);
 			gc.setGlobalAlpha(0.6);
-			gc.fillRect(0, 0, WIDTH, HEIGHT);
+			gc.fillRect(SPACE.getX(), SPACE.getY(), SQUARE_SIZE*8, SQUARE_SIZE*8);
 			gc.restore();
-			if (this.gameFinished) this.client = null;
+			this.client = null;
+			if (this.httpServer != null) this.httpServer.stop();
+			this.httpServer = null;
+			if (this.gameOverText == null){
+				this.gameOverText = this.board.getGameFinishedMessage();
+			} else {
+				gc.save();
+				gc.setFill(Color.WHITE);
+				gc.setFont(new Font("sans-serif", SQUARE_SIZE*0.5));
+				gc.setTextAlign(TextAlignment.CENTER);
+				gc.fillText(this.gameOverText, SPACE.getX()+SQUARE_SIZE*4, SPACE.getY()+SQUARE_SIZE*4);
+				gc.restore();
+			}
 		}
 		
 		if (!this.gameFinished) this.board.tick();

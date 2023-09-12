@@ -10,6 +10,7 @@ public class UiScreen{
 	private GraphicsContext gc;
 	private Rectangle2D rect;
 	private List<UiObject> children = new ArrayList<>();
+	private boolean disabled;
 
 	public UiScreen(GraphicsContext gc, Rectangle2D rect){
 		this.gc = gc;
@@ -28,6 +29,14 @@ public class UiScreen{
 		return this.rect;
 	}
 
+	public void setDisabled(boolean v){
+		this.disabled = v;
+	}
+
+	public boolean isDisabled(){
+		return this.disabled;
+	}
+
 	public void render(){
 		gc.save();
 		gc.setGlobalAlpha(0.7);
@@ -41,5 +50,13 @@ public class UiScreen{
 			obj.render();
 		}
 		gc.restore();
+
+		if (this.disabled){
+			gc.save();
+			gc.setFill(Color.BLACK);
+			gc.setGlobalAlpha(0.6);
+			gc.fillRect(this.rect.getMinX(), this.rect.getMinY(), this.rect.getWidth(), this.rect.getHeight());
+			gc.restore();
+		}
 	}
 }
