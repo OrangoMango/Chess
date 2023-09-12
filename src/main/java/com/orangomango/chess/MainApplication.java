@@ -36,9 +36,9 @@ import com.orangomango.chess.ui.*;
  */
 public class MainApplication extends Application{
 	private static double WIDTH = 850;
-	private static double HEIGHT = 600;
+	private static double HEIGHT = 490;
 	private static int SQUARE_SIZE = (int)(WIDTH*0.05);
-	private static Point2D SPACE = new Point2D(WIDTH*0.1, (HEIGHT-SQUARE_SIZE*8)/2);
+	private static Point2D SPACE = new Point2D(WIDTH*0.18, (HEIGHT-SQUARE_SIZE*8)/2);
 	private static final int FPS = 40;
 	private static final String STARTPOS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 	
@@ -257,7 +257,7 @@ public class MainApplication extends Application{
 	}
 
 	private UiScreen buildHomeScreen(GraphicsContext gc){
-		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(SPACE.getX()*2+SQUARE_SIZE*8, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
+		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(SPACE.getX()*1.5+SQUARE_SIZE*8, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
 		UiButton whiteButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.08, 0.2, 0.2), PLAY_WHITE_IMAGE, () -> this.viewPoint = Color.WHITE);
 		UiButton blackButton = new UiButton(uiScreen, gc, new Rectangle2D(0.35, 0.08, 0.2, 0.2), PLAY_BLACK_IMAGE, () -> this.viewPoint = Color.BLACK);
 		blackButton.connect(whiteButton, this.viewPoint == Color.BLACK);
@@ -328,7 +328,7 @@ public class MainApplication extends Application{
 	}
 
 	private UiScreen buildClockScreen(GraphicsContext gc){
-		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(SPACE.getX()*2+SQUARE_SIZE*8, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
+		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(SPACE.getX()*1.5+SQUARE_SIZE*8, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
 		UiButton backButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.8, 0.2, 0.2), BACK_IMAGE, () -> this.uiScreen = buildHomeScreen(gc));
 		UiTextField timeField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.1, 0.8, 0.2), "600");
 		UiTextField incrementField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.3, 0.8, 0.2), "0");
@@ -347,7 +347,7 @@ public class MainApplication extends Application{
 	}
 
 	private UiScreen buildLanScreen(GraphicsContext gc){
-		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(SPACE.getX()*2+SQUARE_SIZE*8, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
+		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(SPACE.getX()*1.5+SQUARE_SIZE*8, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
 		UiButton backButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.8, 0.2, 0.2), BACK_IMAGE, () -> this.uiScreen = buildHomeScreen(gc));
 		UiTextField ipField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.1, 0.8, 0.2), "127.0.0.1");
 		UiTextField portField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.3, 0.8, 0.2), "1234");
@@ -414,7 +414,7 @@ public class MainApplication extends Application{
 	}
 
 	private UiScreen buildServerScreen(GraphicsContext gc){
-		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(SPACE.getX()*2+SQUARE_SIZE*8, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
+		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(SPACE.getX()*1.5+SQUARE_SIZE*8, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
 		UiButton backButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.8, 0.2, 0.2), BACK_IMAGE, () -> this.uiScreen = buildHomeScreen(gc));
 		UiTextField roomField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.1, 0.8, 0.2), "room-"+(int)(Math.random()*100000));
 		UiButton connect = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.3, 0.8, 0.2), HTTP_IMAGE, () -> {
@@ -458,11 +458,11 @@ public class MainApplication extends Application{
 	private void resize(double w, double h, Canvas canvas){
 		WIDTH = w;
 		HEIGHT = h;
-		SQUARE_SIZE = (int)Math.min(HEIGHT/8*0.85, WIDTH*0.05);
-		SPACE = new Point2D(WIDTH*0.1, (HEIGHT-SQUARE_SIZE*8)/2);
+		SQUARE_SIZE = (int)Math.min(HEIGHT/8*0.6, WIDTH*0.05);
+		SPACE = new Point2D(WIDTH*0.18, (HEIGHT-SQUARE_SIZE*8)/2);
 		canvas.setWidth(w);
 		canvas.setHeight(h);
-		this.uiScreen.setRect(new Rectangle2D(SPACE.getX()*2+SQUARE_SIZE*8, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
+		this.uiScreen.setRect(new Rectangle2D(SPACE.getX()*1.5+SQUARE_SIZE*8, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
 	}
 
 	private Point2D getClickPoint(double x, double y){
@@ -704,8 +704,8 @@ public class MainApplication extends Application{
 		int bm = this.board.getMaterial(Color.BLACK);
 		int wm = this.board.getMaterial(Color.WHITE);
 		int diff = wm-bm;
-		if (diff < 0) gc.fillText(Integer.toString(-diff), WIDTH*0.05, this.viewPoint == Color.WHITE ? wd : bd);
-		if (diff > 0) gc.fillText(Integer.toString(diff), WIDTH*0.05, this.viewPoint == Color.WHITE ? bd : wd);
+		if (diff < 0) gc.fillText(Integer.toString(-diff), WIDTH*0.135, this.viewPoint == Color.WHITE ? wd : bd);
+		if (diff > 0) gc.fillText(Integer.toString(diff), WIDTH*0.135, this.viewPoint == Color.WHITE ? bd : wd);
 		
 		// Captured pieces
 		List<Piece> black = this.board.getMaterialList(Color.BLACK);
@@ -715,7 +715,7 @@ public class MainApplication extends Application{
 			Piece piece = black.get(i);
 			Piece prev = i == 0 ? null : black.get(i-1);
 			if (i > 0) gc.translate(prev != null && prev.getType().getValue() == piece.getType().getValue() ? SQUARE_SIZE/4.0 : SQUARE_SIZE/2.0+SQUARE_SIZE/10.0, 0);
-			gc.drawImage(piece.getImage(), WIDTH*0.05, this.viewPoint == Color.WHITE ? wd : bd, SQUARE_SIZE/2.0, SQUARE_SIZE/2.0);
+			gc.drawImage(piece.getImage(), WIDTH*0.135, this.viewPoint == Color.WHITE ? wd : bd, SQUARE_SIZE/2.0, SQUARE_SIZE/2.0);
 		}
 		gc.restore();
 		gc.save();
@@ -723,7 +723,7 @@ public class MainApplication extends Application{
 			Piece piece = white.get(i);
 			Piece prev = i == 0 ? null : white.get(i-1);
 			if (i > 0) gc.translate(prev != null && prev.getType().getValue() == piece.getType().getValue() ? SQUARE_SIZE/4.0 : SQUARE_SIZE/2.0+SQUARE_SIZE/10.0, 0);
-			gc.drawImage(piece.getImage(), WIDTH*0.05, this.viewPoint == Color.WHITE ? bd : wd, SQUARE_SIZE/2.0, SQUARE_SIZE/2.0);
+			gc.drawImage(piece.getImage(), WIDTH*0.135, this.viewPoint == Color.WHITE ? bd : wd, SQUARE_SIZE/2.0, SQUARE_SIZE/2.0);
 		}
 		gc.restore();
 
@@ -763,13 +763,13 @@ public class MainApplication extends Application{
 		
 		// Moves played
 		int count = 0;
-		double wMove = SQUARE_SIZE*1.8;
+		double wMove = SQUARE_SIZE*2;
 		double hMove = SQUARE_SIZE*0.6;
-		for (int i = Math.max(this.board.getMoves().size()-10, 0); i < this.board.getMoves().size(); i++){
+		for (int i = Math.max(this.board.getMoves().size()-18, 0); i < this.board.getMoves().size(); i++){
 			gc.setStroke(Color.BLACK);
 			gc.setFill(i % 2 == 0 ? Color.web("#F58B23") : Color.web("#7D4711"));
-			double xp = 10+(count++)*wMove;
-			double yp = 30;
+			double xp = 10;
+			double yp = 30+(count++)*hMove;
 			gc.fillRect(xp, yp, wMove, hMove);
 			gc.strokeRect(xp, yp, wMove, hMove);
 			gc.setFill(Color.BLACK);
