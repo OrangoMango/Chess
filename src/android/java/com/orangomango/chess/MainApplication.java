@@ -366,15 +366,11 @@ public class MainApplication extends Application{
 			dialog.getDialogPane().getButtonTypes().addAll(copyFen, loadFen, copyPgn, ButtonType.CANCEL);
 			dialog.showAndWait().ifPresent(b -> {
 				if (b == copyFen){
-					ClipboardContent cc = new ClipboardContent();
-					cc.putString(fenField.getText());
-					Clipboard cb = Clipboard.getSystemClipboard();
-					cb.setContent(cc);
+					ClipData clip = ClipData.newPlainText("board", fenField.getText());
+					clipboard.setPrimaryClip(clip);
 				} else if (b == copyPgn){
-					ClipboardContent cc = new ClipboardContent();
-					cc.putString(pgnField.getText());
-					Clipboard cb = Clipboard.getSystemClipboard();
-					cb.setContent(cc);
+					ClipData clip = ClipData.newPlainText("board", pgnField.getText());
+					clipboard.setPrimaryClip(clip);
 				} else if (b == loadFen){
 					try {
 						reset(fenField.getText(), this.board.getGameTime(), this.board.getIncrementTime());
