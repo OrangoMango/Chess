@@ -16,6 +16,7 @@ import javafx.geometry.Rectangle2D;
 import javafx.geometry.Insets;
 import javafx.util.Duration;
 import javafx.scene.media.*;
+import javafx.scene.image.Image;
 import javafx.scene.text.TextAlignment;
 import javafx.scene.text.Font;
 
@@ -24,6 +25,7 @@ import java.nio.file.*;
 import android.os.Build;
 import javafxports.android.FXActivity;
 import android.media.MediaPlayer;
+import android.media.AudioManager;
 import android.view.View;
 import android.os.Vibrator;
 import android.content.ClipboardManager;
@@ -113,7 +115,7 @@ public class MainApplication extends Application{
 		loadImages();
 
 		FXActivity.getInstance().runOnUiThread(() -> {
-			FXActivity.getInstance().getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+			FXActivity.getInstance().getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
 
 			// Clear useless temp files in cache of previous sessions
 			for (File f : FXActivity.getInstance().getCacheDir().listFiles()){
@@ -274,8 +276,9 @@ public class MainApplication extends Application{
 		canvas.setOnMouseReleased(e -> {
 			String h = getNotation(e);
 			if (e.getButton() == MouseButton.PRIMARY){
-				int x = (int)(e.getX()/SQUARE_SIZE);
-				int y = (int)((e.getY()-SPACE)/SQUARE_SIZE);
+				Point2D clickPoint = getClickPoint(e.getX(), e.getY());
+				int x = (int)(clickPoint.getX()/SQUARE_SIZE);
+				int y = (int)(clickPoint.getY()/SQUARE_SIZE);
 				if (this.viewPoint == Color.BLACK){
 					x = 7-x;
 					y = 7-y;
@@ -324,7 +327,22 @@ public class MainApplication extends Application{
 		stage.widthProperty().addListener((ob, oldV, newV) -> resize((double)newV, HEIGHT, canvas));
 		stage.heightProperty().addListener((ob, oldV, newV) -> resize(WIDTH, (double)newV, canvas));
 
-		stage.setScene(new Scene(pane, WIDTH, HEIGHT));
+		Scene mainScene = new Scene(pane, WIDTH, HEIGHT);
+		mainScene.setOnKeyPressed(e -> {
+			AudioManager manager = (AudioManager)FXActivity.getInstance().getSystemService(Context.AUDIO_SERVICE);
+			switch (e.getCode()){
+				case VOLUME_UP:
+					manager.adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_PLAY_SOUND | AudioManager.FLAG_SHOW_UI);
+					break;
+				case VOLUME_DOWN:
+					manager.adjustVolume(AudioManager.ADJUST_LOWER, AudioManager.FLAG_PLAY_SOUND | AudioManager.FLAG_SHOW_UI);
+					break;
+			}
+		});
+
+		resize(WIDTH, HEIGHT, canvas);
+
+		stage.setScene(mainScene);
 		stage.show();
 	}
 
@@ -426,7 +444,7 @@ public class MainApplication extends Application{
 				Server server = new Server(ip, port, this.board.getFEN(), this.board.getGameTime()+"+"+this.board.getIncrementTime());
 				this.uiScreen = buildHomeScreen(gc);
 			} catch (NumberFormatException ex){
-				Logger.writeError(ex.getMessage());
+				ex.printStackTrace();
 			}
 		});
 		UiButton connect = new UiButton(uiScreen, gc, new Rectangle2D(0.4, 0.5, 0.2, 0.2), CONNECT_CLIENT_IMAGE, () -> {
@@ -469,7 +487,7 @@ public class MainApplication extends Application{
 				listener.setDaemon(true);
 				listener.start();
 			} catch (NumberFormatException ex){
-				Logger.writeError(ex.getMessage());
+				ex.printStackTrace();
 			}
 		});
 
@@ -922,12 +940,15 @@ public class MainApplication extends Application{
     }
 
 	private static void loadSounds(){
-		MOVE_SOUND = new Media(MainApplication.class.getResource("/move.mp3").toExternalForm());
-		CAPTURE_SOUND = new Media(MainApplication.class.getResource("/capture.mp3").toExternalForm());
-		CASTLE_SOUND = new Media(MainApplication.class.getResource("/castle.mp3").toExternalForm());
-		CHECK_SOUND = new Media(MainApplication.class.getResource("/move-check.mp3").toExternalForm());
-		ILLEGAL_SOUND = new Media(MainApplication.class.getResource("/illegal.mp3").toExternalForm());
-		PROMOTE_SOUND = new Media(MainApplication.class.getResource("/promote.mp3").toExternalForm());
+		copyFile("capture.mp3");
+		copyFile("castle.mp3");
+		copyFile("move.mp3");
+		copyFile("move-check.mp3");
+		copyFile("illegal.mp3");
+		copyFile("promote.mp3");
+
+		// Load stockfish
+		copyFile("stockfish");
 	}
 
 	private static void loadImages(){
