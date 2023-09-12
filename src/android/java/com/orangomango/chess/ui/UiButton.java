@@ -5,6 +5,8 @@ import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
 import javafx.geometry.Rectangle2D;
 
+import com.orangomango.chess.MainApplication;
+
 public class UiButton extends UiObject implements Clickable{
 	private Runnable onClick;
 	private Image image;
@@ -22,6 +24,7 @@ public class UiButton extends UiObject implements Clickable{
 		if (getAbsoluteRect().contains(x-this.screen.getRect().getMinX(), y-this.screen.getRect().getMinY())){
 			if (this.connection != null && this.on) return;
 			this.onClick.run();
+			MainApplication.vibrator.vibrate(125);
 			this.on = !this.on;
 			if (this.connection != null){
 				this.connection.on = !this.on;

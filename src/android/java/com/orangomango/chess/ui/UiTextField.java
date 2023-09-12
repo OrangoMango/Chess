@@ -5,7 +5,13 @@ import javafx.scene.paint.Color;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
-import javafx.scene.control.TextInputDialog;
+
+import com.orangomango.chess.MainApplication;
+
+import javafxports.android.FXActivity;
+import android.app.AlertDialog;
+import android.widget.EditText;
+import android.content.DialogInterface;
 
 public class UiTextField extends UiObject implements Clickable{
 	private String placeHolder;
@@ -18,10 +24,21 @@ public class UiTextField extends UiObject implements Clickable{
 	@Override
 	public void click(double x, double y){
 		if (getAbsoluteRect().contains(x-this.screen.getRect().getMinX(), y-this.screen.getRect().getMinY())){
-			TextInputDialog dialog = new TextInputDialog();
-			dialog.setTitle("Insert value");
-			dialog.setHeaderText("Insert value");
-			dialog.showAndWait().ifPresent(s -> this.placeHolder = s);
+			MainApplication.vibrator.vibrate(125);
+			FXActivity.getInstance().runOnUiThread(() -> {
+				AlertDialog.Builder builder = new AlertDialog.Builder(FXActivity.getInstance());
+				final EditText input = new EditText(FXActivity.getInstance());
+				input.setSingleLine();
+				builder.setView(input);
+				builder.setPositiveButton("OK", new DialogInterface.OnClickListener(){
+					@Override
+					public void onClick(DialogInterface dialog, int which){
+						UiTextField.this.placeHolder = input.getText().toString();
+					}
+				});
+
+				builder.show();
+			});
 		}
 	}
 

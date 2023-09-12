@@ -39,7 +39,7 @@ public class UiScreen{
 
 	public void render(){
 		gc.save();
-		gc.setGlobalAlpha(0.7);
+		gc.setGlobalAlpha(0.85);
 		gc.setFill(Color.BLUE);
 		gc.fillRect(this.rect.getMinX(), this.rect.getMinY(), this.rect.getWidth(), this.rect.getHeight());
 		gc.restore();

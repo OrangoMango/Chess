@@ -102,11 +102,10 @@ public class HttpServer{
 	public synchronized String getData(){
 		try {
 			URL url = new URL(this.host+String.format("?game=%s", URLEncoder.encode(this.game, "UTF-8")));
-			StringBuilder builder = new StringBuilder();
 			BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()));
-			reader.lines().forEach(builder::append);
+			String line = reader.readLine();
 			reader.close();
-			return builder.toString();
+			return line;
 		} catch (IOException ex){
 			ex.printStackTrace();
 			return null;
@@ -116,11 +115,10 @@ public class HttpServer{
 	private String getUid(String color){
 		try {
 			URL url = new URL(this.host+String.format("?game=%s&color=%s", URLEncoder.encode(this.game, "UTF-8"), color));
-			StringBuilder builder = new StringBuilder();
 			BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()));
-			reader.lines().forEach(builder::append);
+			String line = reader.readLine();
 			reader.close();
-			return builder.toString();
+			return line;
 		} catch (IOException ex){
 			ex.printStackTrace();
 			return null;

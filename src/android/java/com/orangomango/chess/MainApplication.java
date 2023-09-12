@@ -46,10 +46,11 @@ import com.orangomango.chess.ui.*;
  * @author OrangoMango [https://orangomango.github.io]
  */
 public class MainApplication extends Application{
+	private static final boolean LANDSCAPE = false;
 	private static double WIDTH = Screen.getPrimary().getVisualBounds().getWidth();
 	private static double HEIGHT = Screen.getPrimary().getVisualBounds().getHeight();
-	private static int SQUARE_SIZE = (int)(WIDTH*0.05);
-	private static Point2D SPACE = new Point2D(WIDTH*0.18, (HEIGHT-SQUARE_SIZE*8)/2);
+	private static int SQUARE_SIZE = (int)(LANDSCAPE ? WIDTH*0.05 : WIDTH*0.11);
+	private static Point2D SPACE = new Point2D(LANDSCAPE ? WIDTH*0.15 : (WIDTH-SQUARE_SIZE*8)/2, (HEIGHT-SQUARE_SIZE*8)/2);
 	private static final int FPS = 40;
 	private static final String STARTPOS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 	
@@ -77,6 +78,7 @@ public class MainApplication extends Application{
 	private Client client;
 	private static Color startColor = Color.WHITE;
 	private HttpServer httpServer;
+	private boolean showBoard = LANDSCAPE;
 	
 	private static Map<String, MediaPlayer> players = new HashMap<>();
 	public static final String MOVE_SOUND = "move.mp3";
@@ -146,7 +148,7 @@ public class MainApplication extends Application{
 					x = 7-x;
 					y = 7-y;
 				}
-				if (not != null && !this.gameFinished){
+				if (not != null && !this.gameFinished && this.showBoard){
 					if (this.board.getPlayer() != this.viewPoint && (this.engineMove || !this.overTheBoard)){
 						if (this.currentSelection == null){
 							if (getPremoves().contains(not) || (this.board.getBoard()[x][y] != null && this.board.getBoard()[x][y].getColor() == this.viewPoint)){
@@ -182,6 +184,10 @@ public class MainApplication extends Application{
 								((Clickable)obj).click(e.getX(), e.getY());
 							}
 						}
+					}
+
+					if (!this.uiScreen.getRect().contains(e.getX(), e.getY())){
+						this.showBoard = !this.showBoard;
 					}
 				}
 			}
@@ -347,7 +353,7 @@ public class MainApplication extends Application{
 	}
 
 	private UiScreen buildHomeScreen(GraphicsContext gc){
-		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(SPACE.getX()*1.5+SQUARE_SIZE*8, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
+		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(LANDSCAPE ? (WIDTH-SQUARE_SIZE*6)/2+SQUARE_SIZE*8 : (WIDTH-SQUARE_SIZE*6)/2, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
 		UiButton whiteButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.08, 0.2, 0.2), PLAY_WHITE_IMAGE, () -> this.viewPoint = Color.WHITE);
 		UiButton blackButton = new UiButton(uiScreen, gc, new Rectangle2D(0.35, 0.08, 0.2, 0.2), PLAY_BLACK_IMAGE, () -> this.viewPoint = Color.BLACK);
 		blackButton.connect(whiteButton, this.viewPoint == Color.BLACK);
@@ -414,7 +420,7 @@ public class MainApplication extends Application{
 	}
 
 	private UiScreen buildClockScreen(GraphicsContext gc){
-		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(SPACE.getX()*1.5+SQUARE_SIZE*8, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
+		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(LANDSCAPE ? (WIDTH-SQUARE_SIZE*6)/2+SQUARE_SIZE*8 : (WIDTH-SQUARE_SIZE*6)/2, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
 		UiButton backButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.8, 0.2, 0.2), BACK_IMAGE, () -> this.uiScreen = buildHomeScreen(gc));
 		UiTextField timeField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.1, 0.8, 0.2), "600");
 		UiTextField incrementField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.3, 0.8, 0.2), "0");
@@ -433,7 +439,7 @@ public class MainApplication extends Application{
 	}
 
 	private UiScreen buildLanScreen(GraphicsContext gc){
-		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(SPACE.getX()*1.5+SQUARE_SIZE*8, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
+		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(LANDSCAPE ? (WIDTH-SQUARE_SIZE*6)/2+SQUARE_SIZE*8 : (WIDTH-SQUARE_SIZE*6)/2, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
 		UiButton backButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.8, 0.2, 0.2), BACK_IMAGE, () -> this.uiScreen = buildHomeScreen(gc));
 		UiTextField ipField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.1, 0.8, 0.2), "127.0.0.1");
 		UiTextField portField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.3, 0.8, 0.2), "1234");
@@ -500,11 +506,11 @@ public class MainApplication extends Application{
 	}
 
 	private UiScreen buildServerScreen(GraphicsContext gc){
-		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(SPACE.getX()*1.5+SQUARE_SIZE*8, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
+		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(LANDSCAPE ? (WIDTH-SQUARE_SIZE*6)/2+SQUARE_SIZE*8 : (WIDTH-SQUARE_SIZE*6)/2, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
 		UiButton backButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.8, 0.2, 0.2), BACK_IMAGE, () -> this.uiScreen = buildHomeScreen(gc));
 		UiTextField roomField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.1, 0.8, 0.2), "room-"+(int)(Math.random()*100000));
 		UiButton connect = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.3, 0.8, 0.2), HTTP_IMAGE, () -> {
-			this.httpServer = new HttpServer("http://127.0.0.1/paul_home/Chess-server/index.php", roomField.getValue(), this.viewPoint == Color.WHITE ? "WHITE" : "BLACK");
+			this.httpServer = new HttpServer("http://mangogamesid.000webhostapp.com/chess-server/index.php", roomField.getValue(), this.viewPoint == Color.WHITE ? "WHITE" : "BLACK");
 			if (this.httpServer.isFull()){
 				System.exit(0);
 			}
@@ -544,11 +550,11 @@ public class MainApplication extends Application{
 	private void resize(double w, double h, Canvas canvas){
 		WIDTH = w;
 		HEIGHT = h;
-		SQUARE_SIZE = (int)Math.min(HEIGHT/8*0.6, WIDTH*0.05);
-		SPACE = new Point2D(WIDTH*0.18, (HEIGHT-SQUARE_SIZE*8)/2);
+		SQUARE_SIZE = LANDSCAPE ? (int)Math.min(HEIGHT/8*0.6, WIDTH*0.05) : (int)(WIDTH*0.11);
+		SPACE = new Point2D(LANDSCAPE ? WIDTH*0.15 : (WIDTH-SQUARE_SIZE*8)/2, (HEIGHT-SQUARE_SIZE*8)/2);
 		canvas.setWidth(w);
 		canvas.setHeight(h);
-		this.uiScreen.setRect(new Rectangle2D(SPACE.getX()*1.5+SQUARE_SIZE*8, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
+		this.uiScreen.setRect(new Rectangle2D(LANDSCAPE ? (WIDTH-SQUARE_SIZE*6)/2+SQUARE_SIZE*8 : (WIDTH-SQUARE_SIZE*6)/2, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
 	}
 
 	private Point2D getClickPoint(double x, double y){
@@ -850,12 +856,18 @@ public class MainApplication extends Application{
 		// Moves played
 		int count = 0;
 		double wMove = SQUARE_SIZE*2;
-		double hMove = SQUARE_SIZE*0.6;
-		for (int i = Math.max(this.board.getMoves().size()-18, 0); i < this.board.getMoves().size(); i++){
+		double hMove = SQUARE_SIZE*0.75;
+		for (int i = Math.max(this.board.getMoves().size()-(int)(WIDTH/wMove), 0); i < this.board.getMoves().size(); i++){
 			gc.setStroke(Color.BLACK);
 			gc.setFill(i % 2 == 0 ? Color.web("#F58B23") : Color.web("#7D4711"));
-			double xp = 10;
-			double yp = 30+(count++)*hMove;
+			double xp, yp;
+			if (LANDSCAPE){
+				xp = 10;
+				yp = 30+(count++)*hMove;
+			} else {
+				xp = 10+(count++)*wMove;
+				yp = 30;
+			}
 			gc.fillRect(xp, yp, wMove, hMove);
 			gc.strokeRect(xp, yp, wMove, hMove);
 			gc.setFill(Color.BLACK);
@@ -880,10 +892,6 @@ public class MainApplication extends Application{
 		gc.fillText(topText, timeX+timeWidth/2, wd-timeHeight+timeHeight*0.65);
 		gc.fillText(bottomText, timeX+timeWidth/2, bd+timeHeight*0.65);
 		gc.restore();
-
-		// UI
-		this.uiScreen.setDisabled(!this.gameFinished && this.board.getMoves().size() > 0);
-		this.uiScreen.render();
 		
 		if (this.board.getTime(Color.WHITE) == 0 || this.board.getTime(Color.BLACK) == 0) this.gameFinished = true;
 		if (this.gameFinished){
@@ -907,6 +915,10 @@ public class MainApplication extends Application{
 			}
 		}
 
+		// UI
+		this.uiScreen.setDisabled(!this.gameFinished && this.board.getMoves().size() > 0);
+		if (!showBoard || LANDSCAPE) this.uiScreen.render();
+		
 		if (!this.gameFinished) this.board.tick();
 
 		if (this.board.getTime(Color.WHITE) <= 0 || this.board.getTime(Color.BLACK) <= 0){
