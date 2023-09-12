@@ -300,10 +300,6 @@ public class Board{
 				}
 			}
 			
-			if (check){
-				MainApplication.playSound(MainApplication.CHECK_SOUND);
-			}
-
 			if (this.movesN > 1){
 				if (this.player == Color.WHITE){
 					this.whiteTime += this.increment*1000;
@@ -319,13 +315,19 @@ public class Board{
 			this.states.put(fen, this.states.getOrDefault(fen, 0)+1);
 			
 			this.moves.add(moveToString(piece, pos1, pos, check, capture != null, prom, castle, identical));
-			
-			if (capture != null){
-				MainApplication.playSound(MainApplication.CAPTURE_SOUND);
-			} else if (castle){
-				MainApplication.playSound(MainApplication.CASTLE_SOUND);
+
+			if (check){
+				MainApplication.playSound(MainApplication.CHECK_SOUND);
 			} else {
-				MainApplication.playSound(MainApplication.MOVE_SOUND);
+				if (prom != null){
+					MainApplication.playSound(MainApplication.PROMOTE_SOUND);
+				} else if (capture != null){
+					MainApplication.playSound(MainApplication.CAPTURE_SOUND);
+				} else if (castle){
+					MainApplication.playSound(MainApplication.CASTLE_SOUND);
+				} else {
+					MainApplication.playSound(MainApplication.MOVE_SOUND);
+				}
 			}
 
 			MainApplication.vibrator.vibrate(125);
@@ -371,6 +373,14 @@ public class Board{
 
 	public int getTime(Color color){
 		return color == Color.WHITE ? (int)this.whiteTime : (int)this.blackTime;
+	}
+
+	public void setTime(Color color, int time){
+		if (color == Color.WHITE){
+			this.whiteTime = time;
+		} else {
+			this.blackTime = time;
+		}
 	}
 	
 	public void castleRight(Color color){
@@ -585,7 +595,7 @@ public class Board{
 		}
 		
 		// If there is a single check, check if the piece can be captured or the ckeck can be blocked
-		List<Piece> checks = king.getColor() == Color.WHITE ? this.whiteChecks : this.blackChecks;
+		List<Piece> checks = getCheckingPieces(king.getColor());
 		if (checks.size() == 1){
 			List<Piece> canCapture = getAttackers(checks.get(0));
 			if (canCapture != null){
@@ -715,7 +725,7 @@ public class Board{
 		builder.append("[White \""+this.playerA+"\"]\n");
 		builder.append("[Black \""+this.playerB+"\"]\n");
 		String result = "*";
-		if (isDraw()){
+		if (isDraw() != 0){
 			result = "½-½";
 		} else if (isCheckMate(Color.WHITE)){
 			result = "0-1";
@@ -779,8 +789,8 @@ public class Board{
 		return getAttackers(king) != null && !canKingMove(color);
 	}
 	
-	private boolean isDraw(){
-		if (this.fifty >= 50) return true;
+	private int isDraw(){
+		if (this.fifty >= 50) return 4;
 		List<Piece> pieces = getPiecesOnBoard();
 		int whitePieces = pieces.stream().filter(piece -> piece.getColor() == Color.WHITE).mapToInt(p -> p.getType().getValue()).sum();
 		int blackPieces = pieces.stream().filter(piece -> piece.getColor() == Color.BLACK).mapToInt(p -> p.getType().getValue()).sum();
@@ -795,18 +805,14 @@ public class Board{
 		}
 		boolean whiteDraw = whitePieces == 0 || (whitePieces == 3 && pieces.stream().filter(piece -> piece.getColor() == Color.WHITE).count() == 2);
 		boolean blackDraw = blackPieces == 0 || (blackPieces == 3 && pieces.stream().filter(piece -> piece.getColor() == Color.BLACK).count() == 2);
-		if (whiteDraw && blackDraw) return true;
+		if (whiteDraw && blackDraw) return 3;
 		if ((getAttackers(this.blackKing) == null && !canKingMove(Color.BLACK) && blackLegalMoves.size() == 0 && this.player == Color.BLACK) || (getAttackers(this.whiteKing) == null && !canKingMove(Color.WHITE)) && whiteLegalMoves.size() == 0 && this.player == Color.WHITE){
-			return true;
+			return 2;
 		}
-		if (this.states.values().contains(3)) return true;
-		return false;
+		if (this.states.values().contains(3)) return 1;
+		return 0;
 	}
 
-	public boolean isGameFinished(){
-		return isCheckMate(Color.WHITE) || isCheckMate(Color.BLACK) || isDraw() || this.whiteTime <= 0 || this.blackTime <= 0;
-	}
-	
 	public String getBoardInfo(){
 		int whiteSum = getMaterial(Color.WHITE);
 		int blackSum = getMaterial(Color.BLACK);
@@ -830,16 +836,31 @@ public class Board{
 		return this.player;
 	}
 	
-	@Override
-	public String toString(){
-		StringBuilder builder = new StringBuilder();
-		for (int i = 0; i < 8; i++){ // y
-			for (int j = 0; j < 8; j++){ // x
-				builder.append(this.board[j][i]+" ");
+	public boolean isGameFinished(){
+		return isCheckMate(Color.WHITE) || isCheckMate(Color.BLACK) || isDraw() != 0 || this.whiteTime == 0 || this.blackTime == 0;
+	}
+
+	public String getGameFinishedMessage(){
+		int drawStatus = isDraw();
+		if (isCheckMate(Color.WHITE)){
+			return "Black wins by checkmate";
+		} else if (isCheckMate(Color.BLACK)){
+			return "White wins by checkmate";
+		} else if (drawStatus != 0){
+			if (drawStatus == 1){
+				return "Draw by threefold repetition";
+			} else if (drawStatus == 2){
+				return "Draw by stalemate";
+			} else if (drawStatus == 3){
+				return "Draw by insufficient material";
+			} else if (drawStatus == 4){
+				return "Draw by 50 move-rule";
 			}
-			builder.append("\n");
+		} else if (this.whiteTime == 0){
+			return "Black wins on time";
+		} else if (this.blackTime == 0){
+			return "White wins on time";
 		}
-		builder.append(getBoardInfo());
-		return builder.toString();
+		return null;
 	}
 }

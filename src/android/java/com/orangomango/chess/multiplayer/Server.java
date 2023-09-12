@@ -8,11 +8,14 @@ public class Server{
 	private String ip;
 	private int port;
 	private ServerSocket server;
+	public static String fen, timeControl;
 	public static List<ClientManager> clients = new ArrayList<>();
 	
-	public Server(String ip, int port){
+	public Server(String ip, int port, String fen, String timeControl){
 		this.ip = ip;
 		this.port = port;
+		Server.fen = fen;
+		Server.timeControl = timeControl;
 		try {
 			this.server = new ServerSocket(port, 10, InetAddress.getByName(ip));
 		} catch (IOException ex){

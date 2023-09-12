@@ -38,6 +38,7 @@ public class ClientManager{
 		} else {
 			message = this.color == Color.WHITE ? "WHITE" : "BLACK";
 		}
+		message += ";"+Server.fen+";"+Server.timeControl.split("\\+")[0]+";"+Server.timeControl.split("\\+")[1];
 		try {
 			this.writer.write(message);
 			this.writer.newLine();

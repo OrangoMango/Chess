@@ -108,9 +108,4 @@ public class Piece{
 				return null;
 		}
 	}
-	
-	@Override
-	public String toString(){
-		return String.format("%s(%d)", this.type.getName(), this.color == Color.WHITE ? 0 : 1);
-	}
 }

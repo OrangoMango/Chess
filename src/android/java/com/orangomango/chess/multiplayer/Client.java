@@ -12,6 +12,9 @@ public class Client{
 	private BufferedWriter writer;
 	private BufferedReader reader;
 	private Color color;
+	private String fen;
+	private long gameTime;
+	private int incTime;
 	
 	public Client(String ip, int port, Color color){
 		this.ip = ip;
@@ -26,7 +29,10 @@ public class Client{
 				if (response.equals("FULL")){
 					System.exit(0);
 				} else {
-					this.color = response.equals("WHITE") ? Color.WHITE : Color.BLACK;
+					this.color = response.split(";")[0].equals("WHITE") ? Color.WHITE : Color.BLACK;
+					this.fen = response.split(";")[1];
+					this.gameTime = Long.parseLong(response.split(";")[2]);
+					this.incTime = Integer.parseInt(response.split(";")[3]);
 				}
 			} else {
 				System.exit(0);
@@ -38,6 +44,18 @@ public class Client{
 	
 	public Color getColor(){
 		return this.color;
+	}
+
+	public String getFEN(){
+		return this.fen;
+	}
+
+	public long getGameTime(){
+		return this.gameTime;
+	}
+
+	public int getIncrementTime(){
+		return this.incTime;
 	}
 	
 	public boolean isConnected(){
