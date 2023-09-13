@@ -137,6 +137,12 @@ public class MainApplication extends Application{
 
 		// UI
 		this.uiScreen = buildHomeScreen(gc);
+
+		stage.setOnCloseRequest(e -> {
+			if (this.httpServer != null){
+				this.httpServer.delete();
+			}
+		});
 		
 		canvas.setOnMousePressed(e -> {
 			if (e.getButton() == MouseButton.PRIMARY){
@@ -533,6 +539,9 @@ public class MainApplication extends Application{
 					this.animation = null;
 					this.currentSelection = null;
 					this.gameFinished = this.board.isGameFinished();
+					if (this.gameFinished){
+						this.httpServer.delete();
+					}
 					makePremove();
 				});
 				this.animation.start();
@@ -851,7 +860,10 @@ public class MainApplication extends Application{
 			}
 		}
 		
-		gc.fillText("Eval: "+this.eval, WIDTH*0.8, HEIGHT*0.9);
+		gc.save();
+		gc.setTextAlign(TextAlignment.RIGHT);
+		gc.fillText((this.httpServer == null ? "" : "Room: "+this.httpServer.getRoom()+", ")+"Eval: "+this.eval, WIDTH*0.95, HEIGHT*0.9);
+		gc.restore();
 		
 		// Moves played
 		int count = 0;
@@ -900,18 +912,20 @@ public class MainApplication extends Application{
 			gc.setGlobalAlpha(0.6);
 			gc.fillRect(SPACE.getX(), SPACE.getY(), SQUARE_SIZE*8, SQUARE_SIZE*8);
 			gc.restore();
-			this.client = null;
-			if (this.httpServer != null) this.httpServer.stop();
-			this.httpServer = null;
-			if (this.gameOverText == null){
-				this.gameOverText = this.board.getGameFinishedMessage();
-			} else {
-				gc.save();
-				gc.setFill(Color.WHITE);
-				gc.setFont(new Font("sans-serif", SQUARE_SIZE*0.5));
-				gc.setTextAlign(TextAlignment.CENTER);
-				gc.fillText(this.gameOverText, SPACE.getX()+SQUARE_SIZE*4, SPACE.getY()+SQUARE_SIZE*4);
-				gc.restore();
+			if (this.gameFinished){
+				this.client = null;
+				if (this.httpServer != null) this.httpServer.stop();
+				this.httpServer = null;
+				if (this.gameOverText == null){
+					this.gameOverText = this.board.getGameFinishedMessage();
+				} else {
+					gc.save();
+					gc.setFill(Color.WHITE);
+					gc.setFont(new Font("sans-serif", SQUARE_SIZE*0.5));
+					gc.setTextAlign(TextAlignment.CENTER);
+					gc.fillText(this.gameOverText, SPACE.getX()+SQUARE_SIZE*4, SPACE.getY()+SQUARE_SIZE*4);
+					gc.restore();
+				}
 			}
 		}
 

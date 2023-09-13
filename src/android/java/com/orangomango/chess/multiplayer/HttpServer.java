@@ -35,6 +35,10 @@ public class HttpServer{
 		return this.full;
 	}
 
+	public String getRoom(){
+		return this.game;
+	}
+
 	public Color getColor(){
 		return this.color.equals("WHITE") ? Color.WHITE : Color.BLACK;
 	}
@@ -71,6 +75,9 @@ public class HttpServer{
 
 	public void stop(){
 		this.running = false;
+	}
+
+	public void delete(){
 		try {
 			sendRequest(String.format("?game=%s&delete=1&uid=%s", URLEncoder.encode(this.game, "UTF-8"), this.uid));
 		} catch (IOException ex){
