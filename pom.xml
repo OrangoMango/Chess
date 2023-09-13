@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- File managed by WebFX (DO NOT EDIT MANUALLY) -->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>dev.webfx</groupId>
+        <artifactId>webfx-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.orangomango</groupId>
+
+    <artifactId>chess</artifactId>
+
+    <version>2.0</version>
+
+    <repositories>
+
+        <!-- For WebFX snapshots download (including webfx-parent) -->
+        <repository>
+            <id>webfx-snapshots</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+
+    </repositories>
+
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>Chess-application</module>
+        <module>Chess-application-gluon</module>
+        <module>Chess-application-gwt</module>
+        <module>Chess-application-openjfx</module>
+    </modules>
+
+</project>

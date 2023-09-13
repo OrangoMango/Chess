@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+
+    <exported-packages>
+        <source-packages/>
+        <resource-package>images</resource-package>
+        <resource-package>audio</resource-package>
+    </exported-packages>
+
+    <dependencies>
+        <used-by-source-modules/>
+    </dependencies>
+
+    <providers>
+        <provider interface="javafx.application.Application">com.orangomango.chess.MainApplication</provider>
+    </providers>
+
+</project>
