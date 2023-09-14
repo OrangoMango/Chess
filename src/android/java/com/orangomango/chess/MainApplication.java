@@ -33,6 +33,7 @@ import android.content.ClipData;
 import android.content.Context;
 
 import java.util.*;
+import java.io.*;
 
 import com.orangomango.chess.multiplayer.HttpServer;
 import com.orangomango.chess.multiplayer.Server;
@@ -555,7 +556,6 @@ public class MainApplication extends Application{
 	private void resize(double w, double h, Canvas canvas){
 		WIDTH = w;
 		HEIGHT = h;
-		LANDSCAPE = w > h;
 		SQUARE_SIZE = LANDSCAPE ? (int)Math.min(HEIGHT/8*0.6, WIDTH*0.05) : (int)(WIDTH*0.11);
 		SPACE = new Point2D(LANDSCAPE ? WIDTH*0.15 : (WIDTH-SQUARE_SIZE*8)/2, (HEIGHT-SQUARE_SIZE*8)/2);
 		canvas.setWidth(w);
