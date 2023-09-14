@@ -32,7 +32,6 @@ import android.content.ClipboardManager;
 import android.content.ClipData;
 import android.content.Context;
 
-import java.io.*;
 import java.util.*;
 
 import com.orangomango.chess.multiplayer.HttpServer;
@@ -244,13 +243,6 @@ public class MainApplication extends Application{
 				}
 			}
 		});
-
-		canvas.setOnTouchPressed(e -> {
-			if (e.getTouchPoints().size() == 2){
-				if (this.gameFinished || (this.board.getPlayer() != this.viewPoint && !this.overTheBoard)) return;
-				makeEngineMove(false);
-			}
-		});
 		
 		canvas.setOnMouseReleased(e -> {
 			String h = getNotation(e);
@@ -360,6 +352,7 @@ public class MainApplication extends Application{
 
 	private UiScreen buildHomeScreen(GraphicsContext gc){
 		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(LANDSCAPE ? (WIDTH-SQUARE_SIZE*6)/2+SQUARE_SIZE*8 : (WIDTH-SQUARE_SIZE*6)/2, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
+		uiScreen.setDisabled(!this.gameFinished && (this.board.getMoves().size() > 0 || this.client != null || this.httpServer != null));
 		UiButton whiteButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.08, 0.2, 0.2), PLAY_WHITE_IMAGE, () -> this.viewPoint = Color.WHITE);
 		UiButton blackButton = new UiButton(uiScreen, gc, new Rectangle2D(0.35, 0.08, 0.2, 0.2), PLAY_BLACK_IMAGE, () -> this.viewPoint = Color.BLACK);
 		blackButton.connect(whiteButton, this.viewPoint == Color.BLACK);
@@ -427,6 +420,7 @@ public class MainApplication extends Application{
 
 	private UiScreen buildClockScreen(GraphicsContext gc){
 		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(LANDSCAPE ? (WIDTH-SQUARE_SIZE*6)/2+SQUARE_SIZE*8 : (WIDTH-SQUARE_SIZE*6)/2, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
+		uiScreen.setDisabled(!this.gameFinished && (this.board.getMoves().size() > 0 || this.client != null || this.httpServer != null));
 		UiButton backButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.8, 0.2, 0.2), BACK_IMAGE, () -> this.uiScreen = buildHomeScreen(gc));
 		UiTextField timeField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.1, 0.8, 0.2), "600");
 		UiTextField incrementField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.3, 0.8, 0.2), "0");
@@ -446,6 +440,7 @@ public class MainApplication extends Application{
 
 	private UiScreen buildLanScreen(GraphicsContext gc){
 		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(LANDSCAPE ? (WIDTH-SQUARE_SIZE*6)/2+SQUARE_SIZE*8 : (WIDTH-SQUARE_SIZE*6)/2, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
+		uiScreen.setDisabled(!this.gameFinished && (this.board.getMoves().size() > 0 || this.client != null || this.httpServer != null));
 		UiButton backButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.8, 0.2, 0.2), BACK_IMAGE, () -> this.uiScreen = buildHomeScreen(gc));
 		UiTextField ipField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.1, 0.8, 0.2), "127.0.0.1");
 		UiTextField portField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.3, 0.8, 0.2), "1234");
@@ -513,6 +508,7 @@ public class MainApplication extends Application{
 
 	private UiScreen buildServerScreen(GraphicsContext gc){
 		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(LANDSCAPE ? (WIDTH-SQUARE_SIZE*6)/2+SQUARE_SIZE*8 : (WIDTH-SQUARE_SIZE*6)/2, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
+		uiScreen.setDisabled(!this.gameFinished && (this.board.getMoves().size() > 0 || this.client != null || this.httpServer != null));
 		UiButton backButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.8, 0.2, 0.2), BACK_IMAGE, () -> this.uiScreen = buildHomeScreen(gc));
 		UiTextField roomField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.1, 0.8, 0.2), "room-"+(int)(Math.random()*100000));
 		UiButton connect = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.3, 0.8, 0.2), HTTP_IMAGE, () -> {
@@ -559,6 +555,7 @@ public class MainApplication extends Application{
 	private void resize(double w, double h, Canvas canvas){
 		WIDTH = w;
 		HEIGHT = h;
+		LANDSCAPE = w > h;
 		SQUARE_SIZE = LANDSCAPE ? (int)Math.min(HEIGHT/8*0.6, WIDTH*0.05) : (int)(WIDTH*0.11);
 		SPACE = new Point2D(LANDSCAPE ? WIDTH*0.15 : (WIDTH-SQUARE_SIZE*8)/2, (HEIGHT-SQUARE_SIZE*8)/2);
 		canvas.setWidth(w);
@@ -671,7 +668,6 @@ public class MainApplication extends Application{
 				this.animation = new PieceAnimation(output.split(" ")[0], output.split(" ")[1], () -> {
 					String prom = output.split(" ").length == 3 ? output.split(" ")[2] : null;
 					this.board.move(output.split(" ")[0], output.split(" ")[1], prom);
-					if (this.client != null) this.client.sendMessage(this.board.getTime(this.viewPoint)+";"+output.split(" ")[0]+" "+output.split(" ")[1]);
 					this.hold.clear();
 					this.currentSelection = null;
 					this.moveStart = output.split(" ")[0];
@@ -705,6 +701,7 @@ public class MainApplication extends Application{
 			boolean ok = this.board.move(pre.startPos, pre.endPos, pre.prom);
 			if (ok){
 				if (this.client != null) this.client.sendMessage(this.board.getTime(this.viewPoint)+";"+pre.startPos+" "+pre.endPos+(pre.prom == null ? "" : " "+pre.prom));
+				if (this.httpServer != null) this.httpServer.sendMove(String.format("%s;%s;%s;%s", this.board.getTime(this.viewPoint), pre.startPos, pre.endPos, pre.prom));
 				this.hold.clear();
 				this.moveStart = pre.startPos;
 				this.moveEnd = pre.endPos;
@@ -869,7 +866,8 @@ public class MainApplication extends Application{
 		int count = 0;
 		double wMove = SQUARE_SIZE*2;
 		double hMove = SQUARE_SIZE*0.75;
-		for (int i = Math.max(this.board.getMoves().size()-(int)(WIDTH/wMove), 0); i < this.board.getMoves().size(); i++){
+		int movesAmount = LANDSCAPE ? (int)(HEIGHT/hMove) : (int)(WIDTH/wMove);
+		for (int i = Math.max(this.board.getMoves().size()-movesAmount, 0); i < this.board.getMoves().size(); i++){
 			gc.setStroke(Color.BLACK);
 			gc.setFill(i % 2 == 0 ? Color.web("#F58B23") : Color.web("#7D4711"));
 			double xp, yp;
@@ -930,7 +928,7 @@ public class MainApplication extends Application{
 		}
 
 		// UI
-		this.uiScreen.setDisabled(!this.gameFinished && this.board.getMoves().size() > 0);
+		this.uiScreen.setDisabled(!this.gameFinished && (this.board.getMoves().size() > 0 || this.client != null || this.httpServer != null));
 		if (!showBoard || LANDSCAPE) this.uiScreen.render();
 		
 		if (!this.gameFinished) this.board.tick();
