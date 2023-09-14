@@ -789,7 +789,8 @@ public class MainApplication extends Application{
 		int count = 0;
 		double wMove = SQUARE_SIZE*2;
 		double hMove = SQUARE_SIZE*0.75;
-		for (int i = Math.max(this.board.getMoves().size()-(int)(WIDTH/wMove), 0); i < this.board.getMoves().size(); i++){
+		int movesAmount = LANDSCAPE ? (int)(HEIGHT/hMove) : (int)(WIDTH/wMove);
+		for (int i = Math.max(this.board.getMoves().size()-movesAmount, 0); i < this.board.getMoves().size(); i++){
 			gc.setStroke(Color.BLACK);
 			gc.setFill(i % 2 == 0 ? Color.web("#F58B23") : Color.web("#7D4711"));
 			double xp, yp;
