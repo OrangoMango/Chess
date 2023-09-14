@@ -106,7 +106,7 @@ public class HttpServer{
 		}
 	}
 
-	public synchronized String getData(){
+	private String getData(){
 		try {
 			URL url = new URL(this.host+String.format("?game=%s", URLEncoder.encode(this.game, "UTF-8")));
 			StringBuilder builder = new StringBuilder();

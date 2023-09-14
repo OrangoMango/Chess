@@ -21,7 +21,6 @@ import javafx.scene.media.*;
 import javafx.scene.text.TextAlignment;
 import javafx.scene.text.Font;
 
-import java.io.*;
 import java.util.*;
 
 import com.orangomango.chess.multiplayer.HttpServer;
@@ -272,6 +271,7 @@ public class MainApplication extends Application{
 
 	private UiScreen buildHomeScreen(GraphicsContext gc){
 		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(LANDSCAPE ? SPACE.getX()*1.5+SQUARE_SIZE*8 : SPACE.getX()*1.5, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
+		uiScreen.setDisabled(!this.gameFinished && (this.board.getMoves().size() > 0 || this.client != null || this.httpServer != null));
 		UiButton whiteButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.08, 0.2, 0.2), PLAY_WHITE_IMAGE, () -> this.viewPoint = Color.WHITE);
 		UiButton blackButton = new UiButton(uiScreen, gc, new Rectangle2D(0.35, 0.08, 0.2, 0.2), PLAY_BLACK_IMAGE, () -> this.viewPoint = Color.BLACK);
 		blackButton.connect(whiteButton, this.viewPoint == Color.BLACK);
@@ -343,6 +343,7 @@ public class MainApplication extends Application{
 
 	private UiScreen buildClockScreen(GraphicsContext gc){
 		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(LANDSCAPE ? SPACE.getX()*1.5+SQUARE_SIZE*8 : SPACE.getX()*1.5, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
+		uiScreen.setDisabled(!this.gameFinished && (this.board.getMoves().size() > 0 || this.client != null || this.httpServer != null));
 		UiButton backButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.8, 0.2, 0.2), BACK_IMAGE, () -> this.uiScreen = buildHomeScreen(gc));
 		UiTextField timeField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.1, 0.8, 0.2), "600");
 		UiTextField incrementField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.3, 0.8, 0.2), "0");
@@ -362,6 +363,7 @@ public class MainApplication extends Application{
 
 	private UiScreen buildLanScreen(GraphicsContext gc){
 		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(LANDSCAPE ? SPACE.getX()*1.5+SQUARE_SIZE*8 : SPACE.getX()*1.5, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
+		uiScreen.setDisabled(!this.gameFinished && (this.board.getMoves().size() > 0 || this.client != null || this.httpServer != null));
 		UiButton backButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.8, 0.2, 0.2), BACK_IMAGE, () -> this.uiScreen = buildHomeScreen(gc));
 		UiTextField ipField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.1, 0.8, 0.2), "127.0.0.1");
 		UiTextField portField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.3, 0.8, 0.2), "1234");
@@ -429,6 +431,7 @@ public class MainApplication extends Application{
 
 	private UiScreen buildServerScreen(GraphicsContext gc){
 		UiScreen uiScreen = new UiScreen(gc, new Rectangle2D(LANDSCAPE ? SPACE.getX()*1.5+SQUARE_SIZE*8 : SPACE.getX()*1.5, SPACE.getY(), SQUARE_SIZE*6, SQUARE_SIZE*8));
+		uiScreen.setDisabled(!this.gameFinished && (this.board.getMoves().size() > 0 || this.client != null || this.httpServer != null));
 		UiButton backButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.8, 0.2, 0.2), BACK_IMAGE, () -> this.uiScreen = buildHomeScreen(gc));
 		UiTextField roomField = new UiTextField(uiScreen, gc, new Rectangle2D(0.1, 0.1, 0.8, 0.2), "room-"+(int)(Math.random()*100000));
 		UiButton connect = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.3, 0.8, 0.2), HTTP_IMAGE, () -> {
@@ -845,7 +848,7 @@ public class MainApplication extends Application{
 		}
 
 		// UI
-		this.uiScreen.setDisabled(!this.gameFinished && this.board.getMoves().size() > 0);
+		this.uiScreen.setDisabled(!this.gameFinished && (this.board.getMoves().size() > 0 || this.client != null || this.httpServer != null));
 		if (!showBoard || LANDSCAPE) this.uiScreen.render();
 		
 		if (!this.gameFinished) this.board.tick();
@@ -895,7 +898,7 @@ public class MainApplication extends Application{
 		player.play();
 	}
 	
-	public static void main(String[] args) throws IOException{
+	public static void main(String[] args){
 		if (args.length >= 1){
 			String col = args[0];
 			if (col.equals("WHITE")){
