@@ -759,20 +759,17 @@ public class Board{
 		}
 		
 		builder.append(this.player == Color.WHITE ? " w " : " b ");
-		
-		boolean no = false;
-		if (!this.whiteLeftCastleAllowed && !this.whiteRightCastleAllowed){
+
+		if (!this.whiteLeftCastleAllowed && !this.whiteRightCastleAllowed && !this.blackLeftCastleAllowed && !this.blackRightCastleAllowed){
 			builder.append("-");
-			no = true;
 		} else {
 			if (this.whiteRightCastleAllowed) builder.append("K");
 			if (this.whiteLeftCastleAllowed) builder.append("Q");
-		}
-		if (!this.blackLeftCastleAllowed && !this.blackRightCastleAllowed){
-			if (!no) builder.append("-");
-		} else {
+			if (!this.whiteRightCastleAllowed && !this.whiteLeftCastleAllowed) builder.append("-");
+			builder.append(" ");
 			if (this.blackRightCastleAllowed) builder.append("k");
 			if (this.blackLeftCastleAllowed) builder.append("q");
+			if (!this.blackRightCastleAllowed && !this.blackLeftCastleAllowed) builder.append("-");
 		}
 		builder.append(" ");
 		

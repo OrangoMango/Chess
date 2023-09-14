@@ -160,7 +160,8 @@ public class MainApplication extends Application{
 				}
 			} else if (e.getButton() == MouseButton.MIDDLE){
 				if (this.gameFinished || (this.board.getPlayer() != this.viewPoint && !this.overTheBoard)) return;
-				makeEngineMove(false);
+				//makeEngineMove(false);
+				System.out.println(this.board.getFEN());
 			}
 		});
 		
