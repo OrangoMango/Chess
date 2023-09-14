@@ -807,11 +807,11 @@ public class MainApplication extends Application{
 
 	private static void loadSounds(){
 		MOVE_SOUND = new Media(Resource.toUrl("/audio/move.mp3", MainApplication.class));
-		CAPTURE_SOUND = MOVE_SOUND; //new Media(Resource.toUrl("/audio/capture.mp3", MainApplication.class));
-		CASTLE_SOUND = MOVE_SOUND; //new Media(Resource.toUrl("/audio/castle.mp3", MainApplication.class));
-		CHECK_SOUND = MOVE_SOUND; //new Media(Resource.toUrl("/audio/move-check.mp3", MainApplication.class));
-		ILLEGAL_SOUND = MOVE_SOUND; //new Media(Resource.toUrl("/audio/illegal.mp3", MainApplication.class));
-		PROMOTE_SOUND = MOVE_SOUND; //new Media(Resource.toUrl("/audio/promote.mp3", MainApplication.class));
+		CAPTURE_SOUND = new Media(Resource.toUrl("/audio/capture.mp3", MainApplication.class));
+		CASTLE_SOUND = new Media(Resource.toUrl("/audio/castle.mp3", MainApplication.class));
+		CHECK_SOUND = new Media(Resource.toUrl("/audio/move-check.mp3", MainApplication.class));
+		ILLEGAL_SOUND = new Media(Resource.toUrl("/audio/illegal.mp3", MainApplication.class));
+		PROMOTE_SOUND = new Media(Resource.toUrl("/audio/promote.mp3", MainApplication.class));
 	}
 
 	private static void loadImages(){
