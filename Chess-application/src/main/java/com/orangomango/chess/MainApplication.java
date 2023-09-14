@@ -154,6 +154,10 @@ public class MainApplication extends Application{
 							}
 						}
 					}
+
+					if (!LANDSCAPE && !this.uiScreen.getRect().contains(e.getX(), e.getY())){
+                        this.showBoard = !this.showBoard;
+                    }
 				}
 			} else if (e.getButton() == MouseButton.SECONDARY){
 				String h = getNotation(e);
@@ -161,9 +165,6 @@ public class MainApplication extends Application{
 					this.currentHold = h;
 					if (!this.hold.keySet().contains(h)) this.hold.put(h, new ArrayList<String>());
 				}
-			} else if (e.getButton() == MouseButton.MIDDLE){
-				if (this.gameFinished || (this.board.getPlayer() != this.viewPoint && !this.overTheBoard)) return;
-				makeEngineMove(false);
 			}
 		});
 		
