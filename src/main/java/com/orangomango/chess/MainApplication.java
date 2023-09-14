@@ -624,6 +624,7 @@ public class MainApplication extends Application{
 			boolean ok = this.board.move(pre.startPos, pre.endPos, pre.prom);
 			if (ok){
 				if (this.client != null) this.client.sendMessage(this.board.getTime(this.viewPoint)+";"+pre.startPos+" "+pre.endPos+(pre.prom == null ? "" : " "+pre.prom));
+				if (this.httpServer != null) this.httpServer.sendMove(String.format("%s;%s;%s;%s", this.board.getTime(this.viewPoint), pre.startPos, pre.endPos, pre.prom));
 				this.hold.clear();
 				this.moveStart = pre.startPos;
 				this.moveEnd = pre.endPos;
