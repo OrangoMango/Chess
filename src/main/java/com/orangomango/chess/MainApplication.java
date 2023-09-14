@@ -158,10 +158,6 @@ public class MainApplication extends Application{
 					this.currentHold = h;
 					if (!this.hold.keySet().contains(h)) this.hold.put(h, new ArrayList<String>());
 				}
-			} else if (e.getButton() == MouseButton.MIDDLE){
-				if (this.gameFinished || (this.board.getPlayer() != this.viewPoint && !this.overTheBoard)) return;
-				//makeEngineMove(false);
-				System.out.println(this.board.getFEN());
 			}
 		});
 		
@@ -479,6 +475,7 @@ public class MainApplication extends Application{
 	private void resize(double w, double h, Canvas canvas){
 		WIDTH = w;
 		HEIGHT = h;
+		LANDSCAPE = w > h;
 		SQUARE_SIZE = LANDSCAPE ? (int)Math.min(HEIGHT/8*0.6, WIDTH*0.05) : (int)(WIDTH*0.09);
 		SPACE = new Point2D(LANDSCAPE ? WIDTH*0.15 : WIDTH*0.18, (HEIGHT-SQUARE_SIZE*8)/2);
 		canvas.setWidth(w);
@@ -591,7 +588,6 @@ public class MainApplication extends Application{
 				this.animation = new PieceAnimation(output.split(" ")[0], output.split(" ")[1], () -> {
 					String prom = output.split(" ").length == 3 ? output.split(" ")[2] : null;
 					this.board.move(output.split(" ")[0], output.split(" ")[1], prom);
-					if (this.client != null) this.client.sendMessage(this.board.getTime(this.viewPoint)+";"+output.split(" ")[0]+" "+output.split(" ")[1]);
 					this.hold.clear();
 					this.currentSelection = null;
 					this.moveStart = output.split(" ")[0];
