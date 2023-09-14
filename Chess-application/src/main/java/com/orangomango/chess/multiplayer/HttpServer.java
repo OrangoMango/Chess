@@ -108,8 +108,7 @@ public class HttpServer{
 
 	private void getData(Consumer<String> onSuccess, boolean store){
 		try {
-			Fetch.fetch(this.host+MainApplication.format("?game=%s", URLEncoder.encode(this.game, "UTF-8"))).onSuccess(response -> {
-				String text = response.text().result();
+			Fetch.fetch(this.host+MainApplication.format("?game=%s", URLEncoder.encode(this.game, "UTF-8"))).compose(Response::text).onSuccess(text -> {
 				if (store) this.oldData = text;
 				onSuccess.accept(text);
 			});
@@ -120,8 +119,8 @@ public class HttpServer{
 
 	private void getUid(String color, Consumer<String> onSuccess){
 		try {
-			Fetch.fetch(this.host+MainApplication.format("?game=%s&color=%s", URLEncoder.encode(this.game, "UTF-8"), color)).onSuccess(response -> {
-				onSuccess.accept(response.text().result());
+			Fetch.fetch(this.host+MainApplication.format("?game=%s&color=%s", URLEncoder.encode(this.game, "UTF-8"), color)).compose(Response::text).onSuccess(result -> {
+				onSuccess.accept(result);
 			});
 		} catch (Exception ex){
 			ex.printStackTrace();
@@ -129,8 +128,7 @@ public class HttpServer{
 	}
 
 	private void sendRequest(String param, Consumer<String> onSuccess){
-		Fetch.fetch(this.host+param).onSuccess(response -> {
-			String result = response.text().result();
+		Fetch.fetch(this.host+param).compose(Response::text).onSuccess(result -> {
 			getData(r -> this.oldData = r, false);
 			if (onSuccess != null) onSuccess.accept(result);
 		});

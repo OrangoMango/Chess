@@ -42,6 +42,7 @@ public class MainApplication extends Application{
 	private static Point2D SPACE = new Point2D(LANDSCAPE ? WIDTH*0.15 : WIDTH*0.18, (HEIGHT-SQUARE_SIZE*8)/2);
 	private static final int FPS = 40;
 	private static final String STARTPOS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+	public static CanvasPane MAIN_SCENE;
 	
 	private Board board;
 	private Engine engine;
@@ -91,7 +92,8 @@ public class MainApplication extends Application{
 		StackPane pane = new StackPane();
 		Canvas canvas = new Canvas(WIDTH, HEIGHT);
 		GraphicsContext gc = canvas.getGraphicsContext2D();
-		pane.getChildren().add(canvas);
+		MAIN_SCENE = new CanvasPane(canvas, (w, h) -> resize(w, h, canvas));
+		pane.getChildren().add(MAIN_SCENE);
 		this.board = new Board(STARTPOS, 600000, 0);
 		this.engine = new Engine();
 
@@ -261,9 +263,6 @@ public class MainApplication extends Application{
 		evalCalculator.setDaemon(true);
 		evalCalculator.start();*/
 
-		stage.widthProperty().addListener((ob, oldV, newV) -> resize((double)newV, HEIGHT, canvas));
-		stage.heightProperty().addListener((ob, oldV, newV) -> resize(WIDTH, (double)newV, canvas));
-
 		stage.setScene(new Scene(pane, WIDTH, HEIGHT));
 		stage.getIcons().add(new Image(Resource.toUrl("/images/icon.png", MainApplication.class)));
 		stage.show();
@@ -428,7 +427,9 @@ public class MainApplication extends Application{
 		String prom = isProm ? promType : null;
 		this.animation = new PieceAnimation(this.currentSelection, not, () -> {
 			boolean ok = this.board.move(this.currentSelection, not, prom);
-			if (this.httpServer != null) this.httpServer.sendMove(MainApplication.format("%s;%s;%s;%s", this.board.getTime(this.viewPoint), this.currentSelection, not, prom));
+			if (this.httpServer != null){
+				this.httpServer.sendMove(MainApplication.format("%s;%s;%s;%s", this.board.getTime(this.viewPoint), this.currentSelection, not, prom));
+			}
 			this.moveStart = this.currentSelection;
 			this.moveEnd = not;
 			this.currentSelection = null;
@@ -829,7 +830,26 @@ public class MainApplication extends Application{
 	}
 
 	public static String format(String text, Object... objects){
-		return text;
+		// %s %d %02d
+		char[] chars = text.toCharArray();
+		StringBuilder output = new StringBuilder();
+		int count = 0;
+		for (int i = 0; i < chars.length; i++){
+			char c = chars[i];
+			if (c == '%'){
+				char next = chars[i+1];
+				output.append(objects[count] == null ? "null" : objects[count].toString());
+				count++;
+				if (next == 's' || next == 'd'){
+					i += 1;
+				} else if (next == '0'){
+					i += 3;
+				}
+			} else {
+				output.append(c);
+			}
+		}
+		return output.toString();
 	}
 	
 	public static void main(String[] args){

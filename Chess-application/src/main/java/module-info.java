@@ -8,10 +8,11 @@ module Chess.application {
     requires javafx.controls;
     requires javafx.graphics;
     requires javafx.media;
-    requires webfx.platform.console;
+    requires webfx.extras.webtext;
     requires webfx.platform.fetch;
     requires webfx.platform.resource;
     requires webfx.platform.scheduler;
+    requires webfx.stack.ui.controls;
 
     // Exported packages
     exports com.orangomango.chess;

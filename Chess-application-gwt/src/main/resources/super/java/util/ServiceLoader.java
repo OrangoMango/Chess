@@ -14,7 +14,7 @@ public class ServiceLoader<S> implements Iterable<S> {
             case "dev.webfx.kit.mapper.spi.WebFxKitMapperProvider": return new ServiceLoader<S>(dev.webfx.kit.mapper.spi.impl.gwt.GwtWebFxKitHtmlMapperProvider::new);
             case "dev.webfx.platform.boot.spi.ApplicationBooterProvider": return new ServiceLoader<S>(dev.webfx.platform.boot.spi.impl.gwt.GwtApplicationBooterProvider::new);
             case "dev.webfx.platform.boot.spi.ApplicationJob": return new ServiceLoader<S>();
-            case "dev.webfx.platform.boot.spi.ApplicationModuleBooter": return new ServiceLoader<S>(dev.webfx.kit.launcher.WebFxKitLauncherModuleBooter::new, dev.webfx.kit.mapper.peers.javafxmedia.spi.gwt.GwtMediaModuleBooter::new, dev.webfx.platform.boot.spi.impl.ApplicationJobsBooter::new, dev.webfx.platform.resource.spi.impl.gwt.GwtResourceModuleBooter::new);
+            case "dev.webfx.platform.boot.spi.ApplicationModuleBooter": return new ServiceLoader<S>(dev.webfx.kit.launcher.WebFxKitLauncherModuleBooter::new, dev.webfx.kit.mapper.peers.javafxmedia.spi.gwt.GwtMediaModuleBooter::new, dev.webfx.platform.boot.spi.impl.ApplicationJobsBooter::new, dev.webfx.platform.resource.spi.impl.gwt.GwtResourceModuleBooter::new, dev.webfx.stack.ui.fxraiser.json.JsonFXRaiserModuleBooter::new);
             case "dev.webfx.platform.console.spi.ConsoleProvider": return new ServiceLoader<S>(dev.webfx.platform.console.spi.impl.gwt.GwtConsoleProvider::new);
             case "dev.webfx.platform.fetch.spi.FetchProvider": return new ServiceLoader<S>(dev.webfx.platform.fetch.spi.impl.gwt.GwtFetchProvider::new);
             case "dev.webfx.platform.file.spi.BlobProvider": return new ServiceLoader<S>(dev.webfx.platform.file.spi.impl.gwt.GwtBlobProvider::new);
@@ -27,6 +27,7 @@ public class ServiceLoader<S> implements Iterable<S> {
             case "dev.webfx.platform.uischeduler.spi.UiSchedulerProvider": return new ServiceLoader<S>(dev.webfx.platform.uischeduler.spi.impl.gwt.GwtUiSchedulerProvider::new);
             case "dev.webfx.platform.util.keyobject.formatter.spi.AstFormatterProvider": return new ServiceLoader<S>(dev.webfx.platform.json.tree.JsonTreeFormatterProvider::new);
             case "dev.webfx.platform.util.keyobject.parser.spi.AstParserProvider": return new ServiceLoader<S>(dev.webfx.platform.json.tree.JsonAstParserProvider::new);
+            case "dev.webfx.stack.i18n.operations.ChangeLanguageRequestEmitter": return new ServiceLoader<S>();
             case "javafx.application.Application": return new ServiceLoader<S>(com.orangomango.chess.MainApplication::new);
 
             // UNKNOWN SPI

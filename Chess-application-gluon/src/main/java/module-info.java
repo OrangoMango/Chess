@@ -5,6 +5,7 @@ module Chess.application.gluon {
     // Direct dependencies modules
     requires Chess.application;
     requires javafx.media;
+    requires webfx.extras.webtext.peers.openjfx;
     requires webfx.kit.openjfx;
     requires webfx.platform.audio.gluon;
     requires webfx.platform.boot.java;
@@ -16,6 +17,7 @@ module Chess.application.gluon {
     requires webfx.platform.resource.gluon;
     requires webfx.platform.scheduler.java;
     requires webfx.platform.shutdown.gluon;
+    requires webfx.stack.ui.fxraiser.json;
 
     // Meta Resource package
     opens dev.webfx.platform.meta.exe;
