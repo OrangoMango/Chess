@@ -48,14 +48,14 @@ public class UiTextField extends UiObject implements Clickable{
         ok.setDefaultButton(true);
         Button cancel = new Button("CANCEL");
         cancel.setCancelButton(true);
-        gridPane.add(header, 0, 0);
+        gridPane.add(header, 0, 0, 2, 1);
         gridPane.add(field, 0, 1, 2, 1);
         gridPane.add(cancel, 0, 2);
         gridPane.add(ok, 1, 2);
         DialogCallback callback = DialogUtil.showModalNodeInGoldLayout(gridPane, MAIN_SCENE);
         field.requestFocus();
         ok.setOnAction(e -> {
-                callback.closeDialog();
+        	callback.closeDialog();
                 onSuccess.accept(field.getText());
         });
         cancel.setOnAction(e -> callback.closeDialog());

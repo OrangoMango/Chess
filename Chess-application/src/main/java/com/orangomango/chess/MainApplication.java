@@ -24,6 +24,9 @@ import javafx.scene.text.Font;
 
 import dev.webfx.platform.resource.Resource;
 import dev.webfx.platform.scheduler.Scheduler;
+import dev.webfx.extras.webtext.HtmlText;
+import dev.webfx.stack.ui.controls.dialog.DialogUtil;
+import dev.webfx.stack.ui.controls.dialog.DialogCallback;
 
 import java.util.*;
 
@@ -286,44 +289,53 @@ public class MainApplication extends Application{
 		});
 		UiButton multiplayerButton = new UiButton(uiScreen, gc, new Rectangle2D(0.55, 0.7, 0.35, 0.2), SERVER_IMAGE, () -> this.uiScreen = buildServerScreen(gc));
 		UiButton editBoard = new UiButton(uiScreen, gc, new Rectangle2D(0.425, 0.875, 0.15, 0.15), EDIT_IMAGE, () -> {
-			Dialog<ButtonType> dialog = new Dialog<>();
-			dialog.setTitle("Edit board");
-			dialog.setHeaderText("Edit board");
+			HtmlText header = new HtmlText("<b>Edit board</b>");
 			TextField fenField = new TextField(this.board.getFEN());
 			TextArea pgnField = new TextArea(this.board.getPGN());
+			pgnField.setMinHeight(300);
 			GridPane layout = new GridPane();
 			layout.setHgap(5);
 			layout.setVgap(5);
 			layout.setPadding(new Insets(5, 5, 5, 5));
-			layout.add(fenField, 0, 0, 2, 1);
-			layout.add(pgnField, 0, 1, 2, 1);
-			dialog.getDialogPane().setContent(layout);
-			ButtonType copyFen = new ButtonType("Copy FEN");
-			ButtonType copyPgn = new ButtonType("Copy PGN");
-			ButtonType loadFen = new ButtonType("Load FEN");
-			dialog.getDialogPane().getButtonTypes().addAll(copyFen, loadFen, copyPgn, ButtonType.CANCEL);
-			dialog.showAndWait().ifPresent(b -> {
-				if (b == copyFen){
-					ClipboardContent cc = new ClipboardContent();
-					cc.putString(fenField.getText());
-					Clipboard cb = Clipboard.getSystemClipboard();
-					cb.setContent(cc);
-				} else if (b == copyPgn){
-					ClipboardContent cc = new ClipboardContent();
-					cc.putString(pgnField.getText());
-					Clipboard cb = Clipboard.getSystemClipboard();
-					cb.setContent(cc);
-				} else if (b == loadFen){
-					try {
-						reset(fenField.getText(), this.board.getGameTime(), this.board.getIncrementTime());
-					} catch (IllegalStateException|ArrayIndexOutOfBoundsException ex){
-						Alert alert = new Alert(Alert.AlertType.ERROR);
-						alert.setTitle("Error");
-						alert.setHeaderText(ex.getMessage());
-						alert.showAndWait();
-					}
+			layout.setBackground(new Background(new BackgroundFill(Color.WHITE, null, null)));
+			layout.add(header, 0, 0, 2, 1);
+			layout.add(fenField, 0, 1, 2, 1);
+			layout.add(pgnField, 0, 2, 2, 1);
+			Button copyFen = new Button("Copy FEN");
+			Button copyPgn = new Button("Copy PGN");
+			Button loadFen = new Button("Load FEN");
+			Button cancel = new Button("Cancel");
+			cancel.setCancelButton(true);
+			layout.add(new HBox(5, copyFen, copyPgn, loadFen, cancel), 0, 3, 2, 1);
+
+			DialogCallback callback = DialogUtil.showModalNodeInGoldLayout(layout, MAIN_SCENE);
+
+			copyFen.setOnAction(e -> {
+				callback.closeDialog();
+				ClipboardContent cc = new ClipboardContent();
+				cc.putString(fenField.getText());
+				Clipboard cb = Clipboard.getSystemClipboard();
+				cb.setContent(cc);
+			});
+
+			copyPgn.setOnAction(e -> {
+				ClipboardContent cc = new ClipboardContent();
+				cc.putString(pgnField.getText());
+				Clipboard cb = Clipboard.getSystemClipboard();
+				cb.setContent(cc);
+				callback.closeDialog();
+			});
+
+			loadFen.setOnAction(e -> {
+				try {
+					reset(fenField.getText(), this.board.getGameTime(), this.board.getIncrementTime());
+					callback.closeDialog();
+				} catch (IllegalStateException|ArrayIndexOutOfBoundsException ex){
+					// ERROR
 				}
 			});
+
+			cancel.setOnAction(e -> callback.closeDialog());
 		});
 
 		uiScreen.getChildren().add(blackButton);
