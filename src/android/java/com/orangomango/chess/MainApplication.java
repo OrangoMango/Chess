@@ -199,13 +199,13 @@ public class MainApplication extends Application{
 					}
 				}
 			}
-			if (e.getButton() == MouseButton.PRIMARY && e.getClickCount() == 2){
+			/*if (e.getButton() == MouseButton.PRIMARY && e.getClickCount() == 2){
 				String h = getNotation(e);
 				if (h != null && !this.gameFinished){
 					this.currentHold = h;
 					if (!this.hold.keySet().contains(h)) this.hold.put(h, new ArrayList<String>());
 				}
-			}
+			}*/
 		});
 		
 		canvas.setOnMouseDragged(e -> {
@@ -257,25 +257,27 @@ public class MainApplication extends Application{
 				y = 7-y;
 			}
 			if (e.getButton() == MouseButton.PRIMARY){
-				if (this.currentSelection != null && h != null && this.draggingPiece != null && !this.currentSelection.equals(h)){
-					makeUserMove(h, x, y, true, this.promotionPiece == null ? null : this.promotionPiece.getType().getName());
-				} else {
-					this.draggingPiece = null;
-				}
-			} else if (e.getButton() == MouseButton.SECONDARY){
 				if (h != null){
-					String f = this.currentHold;
-					this.currentHold = null;
-					if (f != null){
-						if (f.equals(h)){
-							this.hold.clear();
-						} else {
-							List<String> list = this.hold.get(f);
-							if (list != null) list.add(h);
-						}
+					if (this.currentSelection != null && h != null && this.draggingPiece != null && !this.currentSelection.equals(h)){
+						makeUserMove(h, x, y, true, this.promotionPiece == null ? null : this.promotionPiece.getType().getName());
+					} else {
+						this.draggingPiece = null;
 					}
 				}
 			}
+
+			/*
+			String f = this.currentHold;
+			this.currentHold = null;
+			if (f != null){
+				if (f.equals(h)){
+					this.hold.clear();
+				} else {
+					List<String> list = this.hold.get(f);
+					if (list != null) list.add(h);
+				}
+			}*/
+
 			this.promotionPiece = null;
 			this.dragging = false;
 		});
