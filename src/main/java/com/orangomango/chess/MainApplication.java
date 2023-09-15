@@ -34,7 +34,7 @@ import com.orangomango.chess.ui.*;
  * @author OrangoMango [https://orangomango.github.io]
  */
 public class MainApplication extends Application{
-	private static final boolean LANDSCAPE = true;
+	private static boolean LANDSCAPE = true;
 	private static double WIDTH = 850;
 	private static double HEIGHT = 490;
 	private static int SQUARE_SIZE = (int)(LANDSCAPE ? WIDTH*0.05 : WIDTH*0.09);
@@ -68,7 +68,7 @@ public class MainApplication extends Application{
 	private HttpServer httpServer;
 	private boolean showBoard = LANDSCAPE;
 	
-	public static Media MOVE_SOUND, CAPTURE_SOUND, CASTLE_SOUND, CHECK_SOUND, ILLEGAL_SOUND, PROMOTE_SOUND;
+	public static Media MOVE_SOUND, CAPTURE_SOUND, CASTLE_SOUND, CHECK_SOUND, ILLEGAL_SOUND, PROMOTE_SOUND, CHECKMATE_SOUND, DRAW_SOUND;
 	private static Image PLAY_BLACK_IMAGE, PLAY_WHITE_IMAGE, LAN_IMAGE, SERVER_IMAGE, TIME_IMAGE, SINGLE_IMAGE, MULTI_IMAGE, BACK_IMAGE, CONNECT_CLIENT_IMAGE, START_SERVER_IMAGE, EDIT_IMAGE, SAVE_IMAGE, HTTP_IMAGE;
 	
 	private static class Premove{
@@ -874,6 +874,8 @@ public class MainApplication extends Application{
 		CHECK_SOUND = new Media(MainApplication.class.getResource("/move-check.mp3").toExternalForm());
 		ILLEGAL_SOUND = new Media(MainApplication.class.getResource("/illegal.mp3").toExternalForm());
 		PROMOTE_SOUND = new Media(MainApplication.class.getResource("/promote.mp3").toExternalForm());
+		CHECKMATE_SOUND = new Media(MainApplication.class.getResource("/game-end.mp3").toExternalForm());
+		DRAW_SOUND = new Media(MainApplication.class.getResource("/game-draw.mp3").toExternalForm());
 	}
 
 	private static void loadImages(){
