@@ -87,6 +87,8 @@ public class MainApplication extends Application{
 	public static final String CHECK_SOUND = "move-check.mp3";
 	public static final String ILLEGAL_SOUND = "illegal.mp3";
 	public static final String PROMOTE_SOUND = "promote.mp3";
+	public static final String CHECKMATE_SOUND = "game-end.mp3";
+	public static final String DRAW_SOUND = "game-draw.mp3";
 
 	public static Vibrator vibrator = (Vibrator)FXActivity.getInstance().getSystemService(Context.VIBRATOR_SERVICE);
 	private static ClipboardManager clipboard = (ClipboardManager)FXActivity.getInstance().getSystemService(Context.CLIPBOARD_SERVICE);
@@ -970,6 +972,8 @@ public class MainApplication extends Application{
 		copyFile("move-check.mp3");
 		copyFile("illegal.mp3");
 		copyFile("promote.mp3");
+		copyFile("game-end.mp3");
+		copyFile("game-draw.mp3");
 
 		// Load stockfish
 		copyFile("stockfish");
