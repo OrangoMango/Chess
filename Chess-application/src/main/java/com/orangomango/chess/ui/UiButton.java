@@ -43,7 +43,7 @@ public class UiButton extends UiObject implements Clickable{
 	public void render(){
 		Rectangle2D abs = getAbsoluteRect();
 		gc.drawImage(this.image, abs.getMinX(), abs.getMinY(), abs.getWidth(), abs.getHeight());
-		if (this.connection != null && !this.on){
+		if (this.connection != null && this.on){
 			gc.save();
 			gc.setGlobalAlpha(0.6);
 			gc.setFill(Color.BLACK);

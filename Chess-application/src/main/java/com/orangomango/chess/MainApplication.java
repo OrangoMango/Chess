@@ -70,7 +70,7 @@ public class MainApplication extends Application{
 	private HttpServer httpServer;
 	private boolean showBoard = LANDSCAPE;
 	
-	public static Media MOVE_SOUND, CAPTURE_SOUND, CASTLE_SOUND, CHECK_SOUND, ILLEGAL_SOUND, PROMOTE_SOUND;
+	public static Media MOVE_SOUND, CAPTURE_SOUND, CASTLE_SOUND, CHECK_SOUND, ILLEGAL_SOUND, PROMOTE_SOUND, CHECKMATE_SOUND, DRAW_SOUND;
 	private static Image PLAY_BLACK_IMAGE, PLAY_WHITE_IMAGE, LAN_IMAGE, SERVER_IMAGE, TIME_IMAGE, SINGLE_IMAGE, MULTI_IMAGE, BACK_IMAGE, CONNECT_CLIENT_IMAGE, START_SERVER_IMAGE, EDIT_IMAGE, SAVE_IMAGE, HTTP_IMAGE;
 	
 	private static class Premove{
@@ -813,6 +813,8 @@ public class MainApplication extends Application{
 		CHECK_SOUND = new Media(Resource.toUrl("/audio/move-check.mp3", MainApplication.class));
 		ILLEGAL_SOUND = new Media(Resource.toUrl("/audio/illegal.mp3", MainApplication.class));
 		PROMOTE_SOUND = new Media(Resource.toUrl("/audio/promote.mp3", MainApplication.class));
+		CHECKMATE_SOUND = new Media(Resource.toUrl("/audio/game-end.mp3", MainApplication.class));
+		DRAW_SOUND = new Media(Resource.toUrl("/audio/game-draw.mp3", MainApplication.class));
 	}
 
 	private static void loadImages(){

@@ -215,7 +215,7 @@ public class Board{
 			}
 			
 			Piece capture = this.board[p2[0]][p2[1]];
-			if (this.enPassant != null && pos.equals(this.enPassant)){
+			if (piece.getType().getName() == Piece.PIECE_PAWN && this.enPassant != null && pos.equals(this.enPassant)){
 				capture = this.board[p2[0]][p1[1]];
 				this.board[capture.getX()][capture.getY()] = null;
 			}
@@ -318,21 +318,31 @@ public class Board{
 			
 			this.moves.add(moveToString(piece, pos1, pos, check, capture != null, prom, castle, identical));
 
-			if (check){
-				MainApplication.playSound(MainApplication.CHECK_SOUND);
+			// Play the correct sound based on the move that was played.
+			// This code uses the MainApplication class, TODO (Maybe make this a standalone class)
+			if (isCheckMate(Color.WHITE) || isCheckMate(Color.BLACK)){
+				MainApplication.playSound(MainApplication.CHECKMATE_SOUND);
+			} else if (isDraw() != 0){
+				MainApplication.playSound(MainApplication.DRAW_SOUND);
 			} else {
-				if (prom != null){
-					MainApplication.playSound(MainApplication.PROMOTE_SOUND);
-				} else if (capture != null){
-					MainApplication.playSound(MainApplication.CAPTURE_SOUND);
-				} else if (castle){
-					MainApplication.playSound(MainApplication.CASTLE_SOUND);
+				if (check){
+					MainApplication.playSound(MainApplication.CHECK_SOUND);
 				} else {
-					MainApplication.playSound(MainApplication.MOVE_SOUND);
+					if (prom != null){
+						MainApplication.playSound(MainApplication.PROMOTE_SOUND);
+					} else if (capture != null){
+						MainApplication.playSound(MainApplication.CAPTURE_SOUND);
+					} else if (castle){
+						MainApplication.playSound(MainApplication.CASTLE_SOUND);
+					} else {
+						MainApplication.playSound(MainApplication.MOVE_SOUND);
+					}
 				}
 			}
+
 			return true;
 		}
+
 		return false;
 	}
 	
@@ -409,7 +419,7 @@ public class Board{
 	
 	private boolean canCastleLeft(Color color){
 		boolean moved = color == Color.WHITE ? this.whiteLeftCastleAllowed : this.blackLeftCastleAllowed;
-		return moved && getAttackers(color == Color.WHITE ? this.whiteKing : this.blackKing) == null && canCastle(new int[]{2, 3}, new int[]{1, 2, 3}, color);
+		return moved && getAttackers(color == Color.WHITE ? this.whiteKing : this.blackKing) == null && canCastle(new int[]{1, 2, 3}, new int[]{2, 3}, color);
 	}
 	
 	private boolean canCastle(int[] xpos, int[] checkXpos, Color color){
