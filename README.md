@@ -5,7 +5,7 @@ Try it now at https://orangomango.itch.io/chess
 # Stockfish
 * **Android**: stockfish is already included in the apk
 * **Desktop**: stockfish needs to be installed separately and must be accessed with the stockfish command or place the executable (the filename must start with stockfish in order to be found by the application) in the .omchess folder loacated in your home directory.
-* **Browser**: thanks to the stockfish.online API, it works also in the browser without installing anything.
+* **Browser**: thanks to the [stockfish.online](https://stockfish.online) API, it works also in the browser without installing anything.
 # Build & Run
 Java 17+ required, `./gradlew :run`
 # Features
