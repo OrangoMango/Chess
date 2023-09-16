@@ -75,7 +75,11 @@ public class Engine{
 	
 	public String getBestMove(Board b){
 		writeCommand("position fen "+b.getFEN());
-		writeCommand(String.format("go wtime %s btime %s winc %s binc %s", b.getTime(Color.WHITE), b.getTime(Color.BLACK), b.getIncrementTime(), b.getIncrementTime()));
+		if (b.getMoves().size() < 5){
+			writeCommand("go movetime 500");
+		} else {
+			writeCommand(String.format("go wtime %s btime %s winc %s binc %s", b.getTime(Color.WHITE), b.getTime(Color.BLACK), b.getIncrementTime(), b.getIncrementTime()));
+		}
 		String output = "";
 		while (true) {
 			try {

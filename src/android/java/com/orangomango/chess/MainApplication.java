@@ -49,7 +49,7 @@ public class MainApplication extends Application{
 	private static final boolean LANDSCAPE = false;
 	private static double WIDTH = Screen.getPrimary().getVisualBounds().getWidth();
 	private static double HEIGHT = Screen.getPrimary().getVisualBounds().getHeight();
-	private static int SQUARE_SIZE = (int)(LANDSCAPE ? WIDTH*0.05 : WIDTH*0.11);
+	private static int SQUARE_SIZE = (int)(LANDSCAPE ? WIDTH*0.05 : WIDTH/8);
 	private static Point2D SPACE = new Point2D(LANDSCAPE ? WIDTH*0.15 : (WIDTH-SQUARE_SIZE*8)/2, (HEIGHT-SQUARE_SIZE*8)/2);
 	private static final int FPS = 40;
 	private static final String STARTPOS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -186,7 +186,7 @@ public class MainApplication extends Application{
 						}
 					}
 				} else {
-					if (!this.uiScreen.isDisabled()){
+					if (!this.uiScreen.isDisabled() && (LANDSCAPE || !this.showBoard)){
 						for (UiObject obj : this.uiScreen.getChildren()){
 							if (obj instanceof Clickable){
 								((Clickable)obj).click(e.getX(), e.getY());
@@ -366,6 +366,9 @@ public class MainApplication extends Application{
 		UiButton singleButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.3, 0.8, 0.2), SINGLE_IMAGE, () -> {
 			this.overTheBoard = false;
 			this.engineMove = true;
+			if (this.viewPoint == Color.BLACK){
+				makeEngineMove(false);
+			}
 		});
 		UiButton boardButton = new UiButton(uiScreen, gc, new Rectangle2D(0.1, 0.5, 0.8, 0.2), MULTI_IMAGE, () -> {
 			this.overTheBoard = true;
@@ -560,7 +563,7 @@ public class MainApplication extends Application{
 	private void resize(double w, double h, Canvas canvas){
 		WIDTH = w;
 		HEIGHT = h;
-		SQUARE_SIZE = LANDSCAPE ? (int)Math.min(HEIGHT/8*0.6, WIDTH*0.05) : (int)(WIDTH*0.11);
+		SQUARE_SIZE = (int)(LANDSCAPE ? Math.min(HEIGHT/8*0.6, WIDTH*0.05) : WIDTH/8);
 		SPACE = new Point2D(LANDSCAPE ? WIDTH*0.15 : (WIDTH-SQUARE_SIZE*8)/2, (HEIGHT-SQUARE_SIZE*8)/2);
 		canvas.setWidth(w);
 		canvas.setHeight(h);
@@ -806,8 +809,8 @@ public class MainApplication extends Application{
 		int bm = this.board.getMaterial(Color.BLACK);
 		int wm = this.board.getMaterial(Color.WHITE);
 		int diff = wm-bm;
-		if (diff < 0) gc.fillText(Integer.toString(-diff), WIDTH*0.135, this.viewPoint == Color.WHITE ? wd : bd);
-		if (diff > 0) gc.fillText(Integer.toString(diff), WIDTH*0.135, this.viewPoint == Color.WHITE ? bd : wd);
+		if (diff < 0) gc.fillText("+"+Integer.toString(-diff), WIDTH*0.135, this.viewPoint == Color.WHITE ? wd : bd);
+		if (diff > 0) gc.fillText("+"+Integer.toString(diff), WIDTH*0.135, this.viewPoint == Color.WHITE ? bd : wd);
 		
 		// Captured pieces
 		List<Piece> black = this.board.getMaterialList(Color.BLACK);
@@ -863,14 +866,14 @@ public class MainApplication extends Application{
 		
 		gc.save();
 		gc.setTextAlign(TextAlignment.RIGHT);
-		gc.fillText((this.httpServer == null ? "" : "Room: "+this.httpServer.getRoom()+", ")+"Eval: "+this.eval, WIDTH*0.95, HEIGHT*0.9);
+		gc.fillText((this.httpServer == null ? "" : "Room: "+this.httpServer.getRoom()+", ")+"Eval: "+this.eval, WIDTH*0.95, HEIGHT*0.93);
 		gc.restore();
 		
 		// Moves played
 		int count = 0;
 		double wMove = SQUARE_SIZE*2;
 		double hMove = SQUARE_SIZE*0.75;
-		int movesAmount = LANDSCAPE ? (int)(HEIGHT/hMove) : (int)(WIDTH/wMove);
+		int movesAmount = LANDSCAPE ? (int)((HEIGHT-60)/hMove) : (int)(WIDTH/wMove);
 		for (int i = Math.max(this.board.getMoves().size()-movesAmount, 0); i < this.board.getMoves().size(); i++){
 			gc.setStroke(Color.BLACK);
 			gc.setFill(i % 2 == 0 ? Color.web("#F58B23") : Color.web("#7D4711"));
@@ -879,13 +882,17 @@ public class MainApplication extends Application{
 				xp = 10;
 				yp = 30+(count++)*hMove;
 			} else {
-				xp = 10+(count++)*wMove;
+				xp = (WIDTH-movesAmount*wMove)/2+(count++)*wMove;
 				yp = 30;
 			}
 			gc.fillRect(xp, yp, wMove, hMove);
 			gc.strokeRect(xp, yp, wMove, hMove);
+			gc.save();
 			gc.setFill(Color.BLACK);
-			gc.fillText((i/2+1)+"."+this.board.getMoves().get(i), xp+wMove*0.1, yp+hMove*0.75);
+			gc.setFont(new Font("sans-serif", hMove*0.5));
+			gc.setTextAlign(TextAlignment.CENTER);
+			gc.fillText((i/2+1)+"."+this.board.getMoves().get(i), xp+wMove*0.5, yp+hMove*0.65);
+			gc.restore();
 		}
 
 		
@@ -933,7 +940,7 @@ public class MainApplication extends Application{
 
 		// UI
 		this.uiScreen.setDisabled(!this.gameFinished && (this.board.getMoves().size() > 0 || this.client != null || this.httpServer != null));
-		if (!showBoard || LANDSCAPE) this.uiScreen.render();
+		if (!this.showBoard || LANDSCAPE) this.uiScreen.render();
 		
 		if (!this.gameFinished) this.board.tick();
 
