@@ -1,22 +1,24 @@
 # Chess
-Chess GUI made in JavaFX. To change the game settings, click twice on the background.
-# Itch
-https://orangomango.itch.io/chess
+Chess GUI made in JavaFX for desktop, browser and android.
+## Web-version
+Try it now at https://orangomango.itch.io/chess
 # Stockfish
-Install stockfish and add it as an environment variable or place the executable (the filename must start with `stockfish` in order to be found by the application) in the `.omchess` folder loacated in your home directory.
-# Run
+* **Android**: stockfish is already included in the apk
+* **Desktop**: stockfish needs to be installed separately and must be accessed with the stockfish command or place the executable (the filename must start with stockfish in order to be found by the application) in the .omchess folder loacated in your home directory.
+* **Browser**: thanks to the stockfish.online API, it works also in the browser without installing anything.
+# Build & Run
 Java 17+ required, `./gradlew :run`
-## Features
+# Features
 * Default chess rules (Capture, movement, en passant, castle, promotion)
-* Play on the same board or **in LAN**
-* Play agains stockfish (be sure to have `stockfish` installed)
-* Watch stockfish vs stockfish
-* Custom FEN (The first line of the text area must be `CUSTOM` and then click `reset board`)
-* Export game FEN and PGN
-* Arrows
+* Play on the same board (**Pass & play**), in **LAN** or in a **server room**
+* Play against stockfish (be sure to have stockfish installed)
+* Custom FEN (Click on the edit board button)
+* Export game FEN or PGN once the game ended.
+* Arrow
 * Premoves
-* Time control (write `<seconds>+<increment>` in the text field and then click reset board)
+* Custom time control
 * Drag and drop
+* Underpromotion by dragging a piece in the opposite direction
 
 # Screenshots
 ![image](https://user-images.githubusercontent.com/61402409/236507038-099f9154-9668-4c95-9361-5d5b156c91c6.png)
